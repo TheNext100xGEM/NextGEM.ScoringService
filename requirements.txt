@@ -1,1 +1,4 @@
-flask
+flask==3.0.2
+bs4==4.12.3
+requests==2.31.0
+pymupdf==1.23.23

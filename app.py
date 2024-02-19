@@ -1,4 +1,3 @@
-import time
 import uuid
 from flask import Flask, request, jsonify
 import threading
@@ -8,7 +7,7 @@ from scoring import call_gpt_agent, call_gemini_agent, call_mistral_agent
 import database_connection as db
 
 app = Flask(__name__)
-isError = True
+isError = False
 num_jobs = 0
 
 
@@ -18,11 +17,6 @@ def processing_task(url: str, taskid: str):
     num_jobs += 1
 
     # Processing
-    # TODO remove "processing simulator"
-    with open(f'{taskid}.txt', 'w') as output:
-        output.write(url)
-    time.sleep(60)
-
     documents = crawl(url)  # scrape URL and related documents
     vectorize(documents)    # chunk documents and vectorize chunks
 
