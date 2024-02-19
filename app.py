@@ -11,6 +11,7 @@ app = Flask(__name__)
 isError = True
 num_jobs = 0
 
+
 def processing_task(url: str, taskid: str):
     # Tracking active processing jobs
     global num_jobs
@@ -35,6 +36,7 @@ def processing_task(url: str, taskid: str):
     # Tracking active processing jobs
     num_jobs -= 1
 
+
 @app.route('/score', methods=['POST'])
 def score():
     """ Starting a project processing job """
@@ -49,6 +51,7 @@ def score():
 
     return jsonify({'taskid': taskid}), 200
 
+
 @app.route('/scorings/<taskid>', methods=['GET'])
 def scorings(taskid):
     """ Project processing job status and results if available """
@@ -61,12 +64,13 @@ def scorings(taskid):
 
     return jsonify({'isFinished': True, 'scoringInfo': scoring_info}), 200
 
+
 @app.route('/status', methods=['GET'])
 def status():
     """ Endpoint status """
     global isError
     global num_jobs
-    return jsonify({'status': isError, 'concurrent_jobs': num_jobs}), 200
+    return jsonify({'status': not isError, 'concurrent_jobs': num_jobs}), 200
 
 
 if __name__ == '__main__':

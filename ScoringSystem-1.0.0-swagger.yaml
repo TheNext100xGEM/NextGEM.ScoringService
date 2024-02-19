@@ -1,0 +1,129 @@
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/cube2/ScoringSystem/1.0.0
+  - description: NextGEM Scoring System API
+    url: https://virtserver.swaggerhub.com/./ScoringSystem/1.0.0
+info:
+  version: "1.0.0"
+  title: NextGEM Scoring System
+  description: RestAPI service for processing projects (scrape, score with LLMs)
+paths:
+  /status:
+    get:
+      tags:
+        - Service
+      description: Returns service state (is service alive? and current concurrent jobs)
+      operationId: status
+      responses:
+        '200':
+          description: API service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceState'
+
+  /score:
+    post:
+      tags:
+        - Score
+      description: Starts a scoring tasks
+      operationId: score
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                websiteUrl:
+                  type: string
+                additionalInfo:
+                  type: object
+              required:
+                - websiteUrl
+      responses:
+        '200':
+          description: Scoring task started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskID'
+
+
+  '/scorings/{taskid}':
+    get:
+      tags:
+        - Score
+      description: Returns scoring task state
+      operationId: scorings
+      parameters:
+        - name: taskid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scoring job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringTaskState'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    ServiceState:
+      type: object
+      properties:
+        status:
+          type: boolean
+        concurrent_jobs:
+          type: integer
+    TaskID:
+      type: object
+      properties:
+        taskid:
+          type: string
+          format: uuid
+    ScoringTemplate:
+      type: object
+      properties:
+        score:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10
+        description:
+          type: string
+    ScoringTaskState:
+      type: object
+      properties:
+        isFinished:
+          type: boolean
+        scoringInfo:
+          type: object
+          properties:
+            gpt:
+              type: object
+              $ref: '#/components/schemas/ScoringTemplate'
+            gemini:
+              type: object
+              $ref: '#/components/schemas/ScoringTemplate'
+            mistral:
+              type: object
+              $ref: '#/components/schemas/ScoringTemplate'
+      required:
+        - isFinished
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
