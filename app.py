@@ -1,14 +1,20 @@
 import uuid
+import json
 from flask import Flask, request, jsonify
 import threading
 from crawler import crawl
 from vectorize import vectorize
+from chunk_selection import get_project_context
 from scoring import call_gpt_agent, call_gemini_agent, call_mistral_agent
 import database_connection as db
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 isError = False
 num_jobs = 0
+temp_result_memory = {}  # TODO remove when db connecton is up
 
 
 def processing_task(url: str, taskid: str):
@@ -18,14 +24,19 @@ def processing_task(url: str, taskid: str):
 
     # Processing
     documents = crawl(url)  # scrape URL and related documents
-    vectorize(documents)    # chunk documents and vectorize chunks
+    text_chunks, embeddings = vectorize(documents)  # chunk documents and vectorize chunks
+    project_context = get_project_context(text_chunks, embeddings, top_k=40)
 
     result = {
-        'gpt': call_gpt_agent(),
-        'gemini': call_gemini_agent(),
-        'mistral': call_mistral_agent()
+        'gpt': call_gpt_agent(project_context),
+        'gemini': call_gemini_agent(project_context),
+        'mistral': call_mistral_agent(project_context)
     }
-    db.store(taskid, result)
+
+    # TODO replace when db connection is up
+    global temp_result_memory
+    temp_result_memory[taskid] = result
+    #db.store(taskid, result)
 
     # Tracking active processing jobs
     num_jobs -= 1
@@ -52,7 +63,14 @@ def scorings(taskid):
     if db.check_taskid(taskid) is None:
         return jsonify({'error': 'Task not found'}), 404
 
-    scoring_info = db.get_task(taskid)
+    # TODO replace when db connection is up
+    global temp_result_memory
+    try:
+        scoring_info = temp_result_memory[taskid]
+    except:
+        scoring_info = None
+    #scoring_info = db.get_task(taskid)
+
     if scoring_info is None:
         return jsonify({'isFinished': False}), 200
 
