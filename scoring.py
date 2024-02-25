@@ -41,7 +41,7 @@ base_prompt = 'Custom AI Assistant for Crypto-Project Analysis: "The Next 100x G
               '- score: integer, min 1, max 10; A median score for the project.\n' \
               '- description: string; A structured explanation of how the score was determined, including any additional information found during your research.\n\n' \
               'Response example:\n' \
-              "{'score': 6, 'description': '{structured example explanation with the requested points}'}\n\n" \
+              "{'score': 6, 'description': 'A structured example explanation with the requested points ...'}\n\n" \
               "List of possibly relevant segments from project documentation:\n"
 
 
