@@ -77,7 +77,7 @@ def crawl(url: str):
             page_links, document_urls = get_links(current_url)
             document_url_list.extend(document_urls)
             level_2.extend([link for link in page_links if link not in visited])
-        if len(level_2) > 2000:
+        if len(level_2) > 100:
             break
 
     # Parse pages
