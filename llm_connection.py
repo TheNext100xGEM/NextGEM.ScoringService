@@ -26,7 +26,7 @@ def get_openai_embedding(text, client=openai_client):
 def get_openai_completion(prompt, client=openai_client, temp=0.0):
     try:
         chat_completion = client.chat.completions.create(messages=[{"role": "user", "content": prompt}],
-                                                         model="gpt-4-0125-preview",
+                                                         model="gpt-3.5-turbo-0125", # "gpt-4-0125-preview",
                                                          temperature=temp)
         return chat_completion.choices[0].message.content
     except:
@@ -36,7 +36,7 @@ def get_openai_completion(prompt, client=openai_client, temp=0.0):
 def get_mistral_completion(prompt, client=mistral_client, temp=0.0):
     try:
         chat_completion = client.chat(messages=[ChatMessage(role="user", content=prompt)],
-                                      model="mistral-small",
+                                      model="mistral-tiny", # "mistral-small",
                                       temperature=temp)
         return chat_completion.choices[0].message.content
     except:
