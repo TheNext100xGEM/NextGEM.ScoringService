@@ -32,7 +32,7 @@ def get_page_text(url: str):
         paragraphs = soup.find_all(text=True)
     except:
         return ''
-    return '\n'.join([p.text for p in paragraphs])
+    return '\n'.join([p.text for p in paragraphs if (len(p) > 0) and (p != '\n') and (p != ' ')])
 
 
 def get_pdf_text(url: str):
