@@ -1,5 +1,3 @@
-import uuid
-import json
 from flask import Flask, request, jsonify
 import threading
 from crawler import crawl
@@ -14,7 +12,6 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 isError = False
 num_jobs = 0
-temp_result_memory = {}  # TODO remove when db connecton is up
 
 
 def processing_task(url: str, taskid: str):
@@ -27,16 +24,19 @@ def processing_task(url: str, taskid: str):
     text_chunks, embeddings = vectorize(documents)  # chunk documents and vectorize chunks
     project_context = get_project_context(text_chunks, embeddings, top_k=40)
 
-    result = {
-        'gpt': call_gpt_agent(project_context),
-        'gemini': call_gemini_agent(project_context),
-        'mistral': call_mistral_agent(project_context)
-    }
+    res1 = call_gpt_agent(project_context)
+    res2 = call_mistral_agent(project_context)
+    res3 = call_gemini_agent(project_context)
 
-    # TODO replace when db connection is up
-    global temp_result_memory
-    temp_result_memory[taskid] = result
-    #db.store(taskid, result)
+    result = {
+        'gpt_score': res1['score'],
+        'gpt_raw': res1['description'],
+        'mistral_score': res2['score'],
+        'mistral_raw': res2['description'],
+        'gemini_score': res3['score'],
+        'gemini_raw': res3['description'],
+    }
+    db.store(taskid, result)
 
     # Tracking active processing jobs
     num_jobs -= 1
@@ -46,7 +46,7 @@ def processing_task(url: str, taskid: str):
 def score():
     """ Starting a project processing job """
     request_data = request.get_json()
-    taskid = str(uuid.uuid4())
+    taskid = db.create_new(request_data.get('websiteUrl', ''))
 
     # TODO handle optional additionalInfo
 
@@ -63,13 +63,7 @@ def scorings(taskid):
     if db.check_taskid(taskid) is None:
         return jsonify({'error': 'Task not found'}), 404
 
-    # TODO replace when db connection is up
-    global temp_result_memory
-    try:
-        scoring_info = temp_result_memory[taskid]
-    except:
-        scoring_info = None
-    #scoring_info = db.get_task(taskid)
+    scoring_info = db.get_task(taskid)
 
     if scoring_info is None:
         return jsonify({'isFinished': False}), 200

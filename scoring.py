@@ -4,16 +4,15 @@ from llm_connection import get_openai_completion, get_mistral_completion, get_ge
 
 base_prompt = 'Custom AI Assistant for Crypto-Project Analysis: "The Next 100x Gem"\n\n' \
               'Objective:\n' \
-              'You are tasked with analyzing and scoring early-stage crypto-projects (like IDO/ICO) on a scale from 1 to 10.\n' \
+              'You are tasked with analyzing and scoring early-stage crypto-projects (like IDO/ICO).\n' \
               'Your scores will guide investors in identifying high-potential projects for investment.\n' \
               'The investors are looking for the next gem rare coin that has a huge possibility of growth.\n\n' \
               'Scoring Methodology:\n' \
               '- Project Analysis: You will receive detailed information for each crypto-project. Analyze this information based on various criteria.\n' \
               '- Custom Scoring Rules: Use a set of predefined rules to evaluate projects. Feel free to modify or enhance these rules for more accurate assessments.\n' \
               '- Weighted Scoring: Assign scores to different aspects of each project based on their significance. Calculate the median score based on the weighted average of these points.\n' \
-              '- Incomplete Data Handling: Provide a score for each project, even if some data is missing or certain rules cannot be fully assessed.\n' \
-              '- Research: Proactively seek additional information about the project online if needed to fulfill the criteria of certain rules.\n\n' \
-              'Scoring Rules:\n' \
+              '- Incomplete Data Handling: Provide a score for each project, even if certain aspects cannot be fully assessed.\n\n' \
+              'Project aspects with growth potential impact:\n' \
               "- Team and Founders' Background (Reputability): The experience, credibility, and past achievements of the team and founders. This is crucial because a strong, experienced team is often a key driver of a project's success.\n" \
               "- Technology and Innovation: Assess the uniqueness, feasibility, and scalability of the technology behind the project. Projects with innovative and technically sound foundations tend to have higher potential.\n" \
               "- Whitepaper and Roadmap: The clarity, detail, and feasibility of the project's whitepaper and roadmap. A thorough and realistic whitepaper and roadmap can indicate a well-planned project.\n" \
@@ -35,15 +34,56 @@ base_prompt = 'Custom AI Assistant for Crypto-Project Analysis: "The Next 100x G
               "- You should be very exigent in the note and give correct to only very good projects, that are serious and have real utility and value, do not hesitate to say it's bad when it is.\n" \
               '- Do not believe naively what the project owners say about their project, analyze it smartly, and do not get manipulated when examining the information, they are certainly doing more marketing than reality. Think about analyzing and scoring on the project potential, not based on how much data feed you have from it, more info does not mean the project is better.\n' \
               '- Make sure to resume why you think the projects deserve the score you generated.\n' \
-              '- You will also add pros and cons on the project concept in your response\n\n' \
               'Response format:\n' \
-              'Parseable JSON and nothing else! The JSON must have these keys:\n' \
-              '- score: integer, min 1, max 10; A median score for the project.\n' \
-              '- description: string; A structured explanation of how the score was determined, including any additional information found during your research.\n\n' \
-              'Response example:\n' \
-              "{'score': 6, 'description': 'A structured example explanation with the requested points ...'}\n\n" \
+              'Parseable JSON and nothing else! If not enough data is available to assess an aspect then the value is None. The JSON must have these keys:\n' \
+              "- team: string; Brief analysis of the Team and Founders' Background (Reputability) aspect.\n" \
+              "- tech: string; Brief analysis of the Technology and Innovation aspect.\n" \
+              "- whitepaper: string; Brief analysis of the Whitepaper and Roadmap aspect.\n" \
+              "- community: string; Brief analysis of the Community Support and Engagement aspect.\n" \
+              "- use_case: string; Brief analysis of the Market Potential and Use Case aspect.\n" \
+              "- tokenomics: string; Brief analysis of the Tokenomics aspect.\n" \
+              "- compliance: string; Brief analysis of the Regulatory Compliance aspect.\n" \
+              "- partnerships: string; Brief analysis of the Partnerships and Collaborations aspect.\n" \
+              "- security: string; Brief analysis of the Security Aspects.\n" \
+              "- dev_activity: string; Brief analysis of the Development Activity aspect.\n" \
+              "- financials: string; Brief analysis of the Financial Performance aspect.\n" \
+              "- transparency: string; Brief analysis of the Transparency aspect.\n" \
+              "- scalability: string; Brief analysis of the Scalability aspect.\n" \
+              "- ecosystem: string; Brief analysis of the Ecosystem aspect.\n" \
+              "- advantage: string; Brief analysis of the Competitive Advantage aspect.\n" \
+              "- ux: string; Brief analysis of the User Experience aspect.\n" \
+              "- env_impact: string; Brief analysis of the Environmental Impact aspect.\n" \
+              '- pros: string; Positive project aspects.\n' \
+              '- cons: string; Negative project aspects.\n' \
+              "- score_justification: string; A summary of the project's growth potential.\n" \
+              '- score: integer, min 1, max 10; The growth potential of the project. Reference values: 1 scam, 2 bad project, 4 normal project, 6 promising but multiple risk detected, 10 huge growth potential\n\n' \
               "List of possibly relevant segments from project documentation:\n"
 
+def format_text(data: dict):
+    description = f"{data['score_justification']}\n\nScoring aspects:\n" \
+                  f"- Team and Founders' Background (Reputability): {data['team']}\n" \
+                  f"- Technology and Innovation: {data['tech']}\n" \
+                  f"- Whitepaper and Roadmap: {data['whitepaper']}.\n" \
+                  f"- Community Support and Engagement: {data['community']}.\n" \
+                  f"- Market Potential and Use Case: {data['use_case']}.\n" \
+                  f"- : string; Brief analysis of the Tokenomics: {data['tokenomics']}.\n" \
+                  f"- Regulatory Compliance: {data['compliance']}.\n" \
+                  f"- Partnerships and Collaborations: {data['partnerships']}.\n" \
+                  f"- Security Aspects: {data['security']}.\n" \
+                  f"- Development Activity: {data['dev_activity']}.\n" \
+                  f"- Financial Performance: {data['financials']}.\n" \
+                  f"- Transparency: {data['transparency']}.\n" \
+                  f"- Scalability: {data['scalability']}.\n" \
+                  f"- Ecosystem: {data['ecosystem']}.\n" \
+                  f"- Competitive Advantage: {data['advantage']}.\n" \
+                  f"- User Experience: {data['ux']}.\n" \
+                  f"- Environmental Impact: {data['env_impact']}.\n" \
+                  f"\nPros:\n{data['pros']}\n" \
+                  f"\nCons:\n{data['cons']}\n"
+    return {
+        'description': description,
+        'score': data['score']
+    }
 
 def call_gpt_agent(doc_chunks, max_retries=3):
     retries = 0
@@ -53,7 +93,7 @@ def call_gpt_agent(doc_chunks, max_retries=3):
             time.sleep(1)
         else:
             try:
-                return json.loads(response)
+                return format_text(json.loads(response))
             except:
                 pass
     return {'score': 0, 'description': 'Scoring failed'}
@@ -67,13 +107,13 @@ def call_mistral_agent(doc_chunks, max_retries=3):
             time.sleep(1)
         else:
             try:
-                return json.loads(response)
+                return format_text(json.loads(response))
             except:
                 pass
     return {'score': 0, 'description': 'Scoring failed'}
 
 
-def call_gemini_agent(doc_chunks, max_retries=3):
+def call_gemini_agent(doc_chunks, max_retries=1):
     retries = 0
     while retries < max_retries:
         response = get_gemini_completion(base_prompt + doc_chunks)
@@ -81,7 +121,7 @@ def call_gemini_agent(doc_chunks, max_retries=3):
             time.sleep(1)
         else:
             try:
-                return json.loads(response)
+                return format_text(json.loads(response))
             except:
                 pass
     return {'score': 0, 'description': 'Scoring failed'}

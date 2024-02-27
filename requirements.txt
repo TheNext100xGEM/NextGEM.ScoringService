@@ -8,3 +8,4 @@ google-generativeai
 langchain==0.1.7
 numpy
 scikit-learn
+pymongo
