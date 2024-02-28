@@ -5,9 +5,23 @@ from vectorize import vectorize
 from chunk_selection import get_project_context
 from scoring import call_gpt_agent, call_gemini_agent, call_mistral_agent
 import database_connection as db
+from logging.config import dictConfig
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 
 app = Flask(__name__)
 isError = False
@@ -20,13 +34,21 @@ def processing_task(url: str, taskid: str):
     num_jobs += 1
 
     # Processing
+    app.logger.info(f'[{taskid}] URL scrapping started.')
     documents = crawl(url)  # scrape URL and related documents
+    app.logger.info(f'[{taskid}] URL scrapping ended.')
     text_chunks, embeddings = vectorize(documents)  # chunk documents and vectorize chunks
+    app.logger.info(f'[{taskid}] Project documentation chunked and vectorized. Chunk count: {len(text_chunks)}')
     project_context = get_project_context(text_chunks, embeddings, top_k=40)
+    app.logger.info(f'[{taskid}] Task relevant text chunks selected. Char count: {len(project_context)}')
 
+    app.logger.info(f'[{taskid}] Calling OpenAI agent.')
     res1 = call_gpt_agent(project_context)
+    app.logger.info(f'[{taskid}] Calling Mistral agent.')
     res2 = call_mistral_agent(project_context)
+    app.logger.info(f'[{taskid}] Calling Gemini agent.')
     res3 = call_gemini_agent(project_context)
+    app.logger.info(f'[{taskid}] All answer arrived.')
 
     result = {
         'gpt_score': res1['score'],
@@ -37,6 +59,7 @@ def processing_task(url: str, taskid: str):
         'gemini_raw': res3['description'],
     }
     db.store(taskid, result)
+    app.logger.info(f'[{taskid}] Results saved in DB.')
 
     # Tracking active processing jobs
     num_jobs -= 1
@@ -51,6 +74,7 @@ def score():
     # TODO handle optional additionalInfo
 
     # Start the async job
+    app.logger.info(f'[{taskid}] Starting to process the project')
     thread = threading.Thread(target=processing_task, args=(request_data.get('websiteUrl', ''), taskid,))
     thread.start()
 
