@@ -8,6 +8,9 @@ chunk_size = 500 * estimated_char_per_token
 
 
 def vectorize(documents: List[str], chunk_size: int = chunk_size):
+    if len(documents) == 0:
+        return [], []
+    
     # Chunk documents
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=int(0.2 * chunk_size))
     chunks = text_splitter.create_documents(documents)
