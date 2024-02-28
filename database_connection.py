@@ -37,7 +37,8 @@ def get_task(taskid: str):
     try:
         result = collection.find_one({'_id': ObjectId(taskid)})
         result['_id'] = str(result['_id'])
-        result['updatedAt'] = result['updatedAt'].strftime("%m/%d/%Y, %H:%M:%S")
+        if 'updatedAt' in result.keys():
+            result['updatedAt'] = result['updatedAt'].strftime("%m/%d/%Y, %H:%M:%S")
         return result
     except:
         return None
