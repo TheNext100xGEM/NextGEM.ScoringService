@@ -4,7 +4,6 @@ requests==2.31.0
 pymupdf==1.23.23
 openai
 mistralai
-google-generativeai
 langchain==0.1.7
 numpy
 scikit-learn

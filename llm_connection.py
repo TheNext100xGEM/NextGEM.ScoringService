@@ -2,7 +2,7 @@ import json
 import openai
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
-import google.generativeai as genai
+import requests
 
 # API keys
 with open('config.json', 'r') as file:
@@ -10,7 +10,7 @@ with open('config.json', 'r') as file:
 
 openai_client = openai.OpenAI(api_key=config['OPENAI_API_KEY'])
 mistral_client = MistralClient(api_key=config["MISTRAL_API_KEY"])
-genai.configure(api_key=config["GEMINI_API_KEY"])
+genai_key=config["GEMINI_API_KEY"]
 
 
 def get_openai_embedding(text, client=openai_client):
@@ -23,31 +23,57 @@ def get_openai_embedding(text, client=openai_client):
         return None
 
 
-def get_openai_completion(prompt, client=openai_client, temp=0.0):
+def get_openai_completion(prompt, logger, client=openai_client, temp=0.0):
     try:
         chat_completion = client.chat.completions.create(messages=[{"role": "user", "content": prompt}],
                                                          model="gpt-3.5-turbo-0125", # "gpt-4-0125-preview",
                                                          temperature=temp)
         return chat_completion.choices[0].message.content
-    except:
+    except Exception as e:
+        logger.error(f'Openai answer generation error: {e}')
         return None
 
 
-def get_mistral_completion(prompt, client=mistral_client, temp=0.0):
+def get_mistral_completion(prompt, logger, client=mistral_client, temp=0.0):
     try:
         chat_completion = client.chat(messages=[ChatMessage(role="user", content=prompt)],
                                       model="mistral-tiny", # "mistral-small",
                                       temperature=temp)
         return chat_completion.choices[0].message.content
-    except:
+    except Exception as e:
+        logger.error(f'Mistral answer generation error: {e}')
         return None
 
 
-def get_gemini_completion(prompt, temp=0.0):
+def get_gemini_completion(prompt, logger, temp=0.0):
     try:
-        model = genai.GenerativeModel('gemini-pro')
-        generation_config = genai.types.GenerationConfig(candidate_count=1, temperature=temp)
-        chat_completion = model.generate_content(prompt, generation_config=generation_config)
-        return chat_completion.text
-    except:
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        params = {
+            'key': genai_key,
+        }
+        data = {
+            "contents": [{
+                "parts": [{
+                    "text": prompt
+                }]
+            }],
+            "safetySettings": [
+                {
+                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    "threshold": "BLOCK_ONLY_HIGH"
+                }
+            ],
+            "generationConfig": {
+                "temperature": temp,
+                "candidate_count": 1
+            }
+        }
+        response = requests.post(url, headers=headers, params=params, json=data)
+        chat_completion = response.json()
+        return chat_completion['candidates'][0]['content']['parts'][0]['text'].replace('```', '').replace('json', '')
+    except Exception as e:
+        logger.error(f'Gemini answer generation error: {e}')
         return None
