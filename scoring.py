@@ -85,7 +85,7 @@ def format_text(data: dict):
         'score': data['score']
     }
 
-def call_gpt_agent(doc_chunks, max_retries=3, logger):
+def call_gpt_agent(doc_chunks, logger, max_retries=3):
     retries = 0
     while retries < max_retries:
         response = get_openai_completion(base_prompt + doc_chunks, logger)
@@ -99,7 +99,7 @@ def call_gpt_agent(doc_chunks, max_retries=3, logger):
     return {'score': 0, 'description': 'Scoring failed'}
 
 
-def call_mistral_agent(doc_chunks, max_retries=3, logger):
+def call_mistral_agent(doc_chunks, logger, max_retries=3):
     retries = 0
     while retries < max_retries:
         response = get_mistral_completion(base_prompt + doc_chunks, logger)
@@ -113,7 +113,7 @@ def call_mistral_agent(doc_chunks, max_retries=3, logger):
     return {'score': 0, 'description': 'Scoring failed'}
 
 
-def call_gemini_agent(doc_chunks, max_retries=1, logger):
+def call_gemini_agent(doc_chunks, logger, max_retries=1):
     retries = 0
     while retries < max_retries:
         response = get_gemini_completion(base_prompt + doc_chunks, logger)

@@ -5,7 +5,7 @@ import numpy as np
 
 
 def get_project_context(text_chunks, embeddings, top_k=10):
-    if len(text_chunks) == 0:
+    if len(text_chunks) < 200:
         return 'No document was scrapped. Score accordingly!'
 
     _, base_prompt_emb = vectorize([base_prompt], chunk_size=99999)

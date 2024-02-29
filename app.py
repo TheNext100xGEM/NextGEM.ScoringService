@@ -43,11 +43,11 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] Task relevant text chunks selected. Char count: {len(project_context)}')
 
     app.logger.info(f'[{taskid}] Calling OpenAI agent.')
-    res1 = call_gpt_agent(project_context, logger=app.logger)
+    res1 = call_gpt_agent(project_context, app.logger)
     app.logger.info(f'[{taskid}] Calling Mistral agent.')
-    res2 = call_mistral_agent(project_context, logger=app.logger)
+    res2 = call_mistral_agent(project_context, app.logger)
     app.logger.info(f'[{taskid}] Calling Gemini agent.')
-    res3 = call_gemini_agent(project_context, logger=app.logger)
+    res3 = call_gemini_agent(project_context, app.logger)
     app.logger.info(f'[{taskid}] All answer arrived.')
 
     result = {
