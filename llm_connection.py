@@ -26,9 +26,9 @@ def get_openai_embedding(text, client=openai_client):
 def get_openai_completion(prompt, logger, client=openai_client, temp=0.0):
     try:
         chat_completion = client.chat.completions.create(messages=[{"role": "user", "content": prompt}],
-                                                         model="gpt-3.5-turbo-0125", # "gpt-4-0125-preview",
+                                                         model="gpt-4-0125-preview",
                                                          temperature=temp)
-        return chat_completion.choices[0].message.content
+        return chat_completion.choices[0].message.content.replace('```', '').replace('json', '')
     except Exception as e:
         logger.error(f'Openai answer generation error: {e}')
         return None
@@ -39,7 +39,7 @@ def get_mistral_completion(prompt, logger, client=mistral_client, temp=0.0):
         chat_completion = client.chat(messages=[ChatMessage(role="user", content=prompt)],
                                       model="mistral-tiny", # "mistral-small",
                                       temperature=temp)
-        return chat_completion.choices[0].message.content
+        return chat_completion.choices[0].message.content.replace('```', '').replace('json', '')
     except Exception as e:
         logger.error(f'Mistral answer generation error: {e}')
         return None
