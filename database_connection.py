@@ -1,6 +1,7 @@
 import json
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+import datetime
 
 # DB connection
 with open('config.json', 'r') as file:
@@ -14,12 +15,13 @@ collection = db['projects']
 def create_new(url: str):
     result = collection.find_one({'websiteLink': url})
     if result is None:
-        result = collection.insert_one({'websiteLink': url})
+        result = collection.insert_one({'websiteLink': url, 'createdAt': datetime.datetime.now()})
         return str(result.inserted_id)
     return str(result['_id'])
 
 
 def store(taskid: str, data: dict):
+    data['updatedAt'] = datetime.datetime.now()
     collection.update_one({'_id': ObjectId(taskid)}, {'$set': data})
 
 
