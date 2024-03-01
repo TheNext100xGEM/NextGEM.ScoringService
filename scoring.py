@@ -59,6 +59,7 @@ base_prompt = 'Custom AI Assistant for Crypto-Project Analysis: "The Next 100x G
               '- score: integer, min 1, max 10; The growth potential of the project. Reference values: 1 scam, 2 bad project, 4 normal project, 6 promising but multiple risk detected, 10 huge growth potential\n\n' \
               "List of possibly relevant segments from project documentation:\n"
 
+
 def format_text(data: dict):
     description = f"{data['score_justification']}\n\nScoring aspects:\n" \
                   f"- Team and Founders' Background (Reputability): {data['team']}\n" \
@@ -85,7 +86,11 @@ def format_text(data: dict):
         'score': data['score']
     }
 
+
 def call_gpt_agent(doc_chunks, logger, max_retries=3):
+    if len(doc_chunks) < 100:
+        doc_chunks = 'No document was scrapped. Score accordingly!'
+
     retries = 0
     while retries < max_retries:
         response = get_openai_completion(base_prompt + doc_chunks, logger)
@@ -100,6 +105,9 @@ def call_gpt_agent(doc_chunks, logger, max_retries=3):
 
 
 def call_mistral_agent(doc_chunks, logger, max_retries=3):
+    if len(doc_chunks) < 100:
+        doc_chunks = 'No document was scrapped. Score accordingly!'
+
     retries = 0
     while retries < max_retries:
         response = get_mistral_completion(base_prompt + doc_chunks, logger)
@@ -114,6 +122,9 @@ def call_mistral_agent(doc_chunks, logger, max_retries=3):
 
 
 def call_gemini_agent(doc_chunks, logger, max_retries=1):
+    if len(doc_chunks) < 100:
+        doc_chunks = 'No document was scrapped. Score accordingly!'
+
     retries = 0
     while retries < max_retries:
         response = get_gemini_completion(base_prompt + doc_chunks, logger)

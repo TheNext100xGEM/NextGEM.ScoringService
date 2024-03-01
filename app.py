@@ -3,6 +3,8 @@ import threading
 from crawler import crawl
 from vectorize import vectorize
 from chunk_selection import get_project_context
+from extraction import extract_chain_info, extract_area_info
+from llm_connection import get_openai_completion
 from scoring import call_gpt_agent, call_gemini_agent, call_mistral_agent
 import database_connection as db
 from logging.config import dictConfig
@@ -39,9 +41,16 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] URL scrapping ended.')
     text_chunks, embeddings = vectorize(documents)  # chunk documents and vectorize chunks
     app.logger.info(f'[{taskid}] Project documentation chunked and vectorized. Chunk count: {len(text_chunks)}')
-    project_context = get_project_context(text_chunks, embeddings, top_k=40)
-    app.logger.info(f'[{taskid}] Task relevant text chunks selected. Char count: {len(project_context)}')
 
+    # Extracting information
+    chain_info = extract_chain_info(text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Chain info extracted: {chain_info}')
+    area_info = extract_area_info(text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Area info extracted: {area_info}')
+
+    # Scoring
+    project_context = get_project_context(text_chunks, embeddings, top_k=40)
+    app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
     app.logger.info(f'[{taskid}] Calling OpenAI agent.')
     res1 = call_gpt_agent(project_context, app.logger)
     app.logger.info(f'[{taskid}] Calling Mistral agent.')
@@ -50,13 +59,21 @@ def processing_task(url: str, taskid: str):
     res3 = call_gemini_agent(project_context, app.logger)
     app.logger.info(f'[{taskid}] All answer arrived.')
 
+    # Summary
+    summary = get_openai_completion(f'Summarize the project in one sentence!\n{res1}', app.logger)
+    app.logger.info(f'[{taskid}] Summary generated: {summary}')
+
+    # Saving results
     result = {
+        'blockchain_area': chain_info,
+        'area_project': area_info,
         'gpt_score': res1['score'],
         'gpt_raw': res1['description'],
         'mistral_score': res2['score'],
         'mistral_raw': res2['description'],
         'gemini_score': res3['score'],
         'gemini_raw': res3['description'],
+        'llm_summary': summary,
     }
     db.store(taskid, result)
     app.logger.info(f'[{taskid}] Results saved in DB.')
@@ -70,8 +87,6 @@ def score():
     """ Starting a project processing job """
     request_data = request.get_json()
     taskid = db.create_new(request_data.get('websiteUrl', ''))
-
-    # TODO handle optional additionalInfo
 
     # Start the async job
     app.logger.info(f'[{taskid}] Starting to process the project')
