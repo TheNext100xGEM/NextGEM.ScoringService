@@ -1,3 +1,4 @@
+import time
 from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from llm_connection import get_openai_embedding
@@ -7,7 +8,7 @@ estimated_char_per_token = 3
 chunk_size = 500 * estimated_char_per_token
 
 
-def vectorize(documents: List[str], chunk_size: int = chunk_size):
+def vectorize(documents: List[str], chunk_size: int = chunk_size, max_retries: int = 3):
     if len(documents) == 0:
         return [], []
     
@@ -19,7 +20,13 @@ def vectorize(documents: List[str], chunk_size: int = chunk_size):
     # Create embeddings for text chunks
     embeddings = []
     for text in text_chunks:
-        response = get_openai_embedding(text)
+        retries = 0
+        while retries < max_retries:
+            response = get_openai_embedding(text)
+            if response is None:
+                time.sleep(1)
+            else:
+                break
         if response is None:
             continue
         embeddings.append(response)
