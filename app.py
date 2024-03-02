@@ -70,7 +70,6 @@ def processing_task(url: str, taskid: str):
         "analyzed": True,
         "twitterLink": twitter_link,
         "telegramLink": telegram_link,
-        'blockchain_area': chain_info,
         'gpt_score': res1['score'],
         'gpt_raw': res1['description'],
         'mistral_score': res2['score'],
