@@ -3,7 +3,7 @@ import threading
 from crawler import crawl
 from vectorize import vectorize
 from chunk_selection import get_project_context
-from extraction import extract_token_info
+from extraction import extract_token_info, extract_lunchpad_info
 from llm_connection import get_openai_completion
 from scoring import call_gpt_agent, call_gemini_agent, call_mistral_agent
 import database_connection as db
@@ -48,6 +48,8 @@ def processing_task(url: str, taskid: str):
     # TODO "tokenName", "tokenSymbol", "submittedDescription"
     token_info = extract_token_info(text_chunks, embeddings, app.logger)
     app.logger.info(f'[{taskid}] Token info extracted: {token_info}')
+    lunchpad_info = extract_lunchpad_info(text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Lunchpad info extracted: {lunchpad_info}')
 
     # Scoring
     project_context = get_project_context(text_chunks, embeddings, top_k=40)
@@ -61,7 +63,7 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] All answer arrived.')
 
     # Summary
-    summary = get_openai_completion(f'Summarize the project in one sentence!\n{res1}', app.logger)
+    summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
     app.logger.info(f'[{taskid}] Summary generated: {summary}')
 
     # Saving results
@@ -70,6 +72,7 @@ def processing_task(url: str, taskid: str):
         "analyzed": True,
         "twitterLink": twitter_link,
         "telegramLink": telegram_link,
+        "submittedDescription": lunchpad_info,
         'gpt_score': res1['score'],
         'gpt_raw': res1['description'],
         'mistral_score': res2['score'],
