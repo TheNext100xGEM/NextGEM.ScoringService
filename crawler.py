@@ -1,4 +1,5 @@
 import requests
+import re
 from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
 
@@ -32,7 +33,13 @@ def get_page_text(url: str):
         paragraphs = soup.find_all(text=True)
     except:
         return ''
-    return '\n'.join([p.text for p in paragraphs if (len(p) > 0) and (p != '\n') and (p != ' ')])
+
+    texts = [p.text for p in paragraphs if len(p.text) > 3]
+
+    if len(texts) > 1:
+        texts = [texts[i] for i in range(1,len(texts) - 1) if texts[i] != texts[i+1]]
+
+    return '\n'.join(texts)
 
 
 def get_pdf_text(url: str):
@@ -87,4 +94,20 @@ def crawl(url: str):
     # Parse pdf-s (e.g. whitepapers)
     document_texts = [f"The following text is from {i}:\n\n{get_pdf_text(i)}" for i in document_url_list]
 
-    return page_texts + document_texts
+    # Twitter and telegram links
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        links = soup.find_all('a', href=True)
+        try:
+            twitter_link = [link['href'] for link in links if 'twitter.com' in link['href']][0]
+        except:
+            twitter_link = None
+        try:
+            telegram_link = [link['href'] for link in links if 't.me' in link['href']][0]
+        except:
+            telegram_link = None
+    except:
+        pass
+
+    return page_texts + document_texts, twitter_link, telegram_link
