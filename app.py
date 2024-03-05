@@ -117,8 +117,8 @@ def processing_task(url: str, taskid: str):
         "analyzed": True,
         "twitterLink": twitter_link,
         "telegramLink": telegram_link,
-        "tokenName": token_info['tokenName'],
-        "tokenSymbol": token_info['tokenSymbol'],
+        "tokenName": formatted_tokenName,
+        "tokenSymbol": formatted_tokenSymbol,
         "chains": token_info['chains'],
         "submittedDescription": lunchpad_info
     }
