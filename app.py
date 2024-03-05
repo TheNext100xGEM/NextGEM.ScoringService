@@ -45,7 +45,6 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] Project documentation chunked and vectorized. Chunk count: {len(text_chunks)}')
 
     # Extracting information
-    # TODO "tokenName", "tokenSymbol", "submittedDescription"
     token_info = extract_token_info(text_chunks, embeddings, app.logger)
     app.logger.info(f'[{taskid}] Token info extracted: {token_info}')
     lunchpad_info = extract_lunchpad_info(text_chunks, embeddings, app.logger)
@@ -56,11 +55,16 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
     app.logger.info(f'[{taskid}] Calling OpenAI agent.')
     res1 = call_gpt_agent(project_context, app.logger)
+    app.logger.info(f'[{taskid}] OpenAI score: {res1["score"]}')
+    app.logger.info(f'[{taskid}] OpenAI description:\n{res1["description"]}')
     app.logger.info(f'[{taskid}] Calling Mistral agent.')
     res2 = call_mistral_agent(project_context, app.logger)
+    app.logger.info(f'[{taskid}] Mistral score: {res2["score"]}')
+    app.logger.info(f'[{taskid}] Mistral description:\n{res2["description"]}')
     app.logger.info(f'[{taskid}] Calling Gemini agent.')
     res3 = call_gemini_agent(project_context, app.logger)
-    app.logger.info(f'[{taskid}] All answer arrived.')
+    app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
+    app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
 
     # Summary
     summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
@@ -72,6 +76,9 @@ def processing_task(url: str, taskid: str):
         "analyzed": True,
         "twitterLink": twitter_link,
         "telegramLink": telegram_link,
+        "tokenName": token_info['tokenName'],
+        "tokenSymbol": token_info['tokenSymbol'],
+        "chains": token_info['chains'],
         "submittedDescription": lunchpad_info,
         'gpt_score': res1['score'],
         'gpt_raw': res1['description'],
