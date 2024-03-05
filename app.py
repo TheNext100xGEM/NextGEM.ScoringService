@@ -161,6 +161,10 @@ def scorings(taskid):
     if scoring_info is None:
         return jsonify({'isFinished': False}), 200
 
+    #small bug fix that waits for the creation of analyzed field, which means the info is actually ready
+    if scoring_info.analyzed is None:
+        return jsonify({'isFinished': False}), 200
+
     return jsonify({'isFinished': True, 'scoringInfo': scoring_info}), 200
 
 
