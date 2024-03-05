@@ -107,8 +107,8 @@ def processing_task(url: str, taskid: str):
     formatted_tokenName, formatted_tokenSymbol = format_token_info(token_info['tokenName'], token_info['tokenSymbol'])
     
     result = {
-        "iteration": 1,
-        "analyzed": True,
+        "iteration": 0,
+        "analyzed": False,
         "twitterLink": twitter_link,
         "telegramLink": telegram_link,
         "tokenName": formatted_tokenName,
@@ -120,6 +120,8 @@ def processing_task(url: str, taskid: str):
     if(ai_analysis):
         result = {
             **result, 
+            "iteration": 1,
+            "analyzed": True,
             'gpt_score': res1['score'],
             'gpt_raw': res1['description'],
             'mistral_score': res2['score'],
