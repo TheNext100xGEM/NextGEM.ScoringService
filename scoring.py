@@ -67,7 +67,7 @@ def format_text(data: dict):
                   f"- Whitepaper and Roadmap: {data['whitepaper']}.\n" \
                   f"- Community Support and Engagement: {data['community']}.\n" \
                   f"- Market Potential and Use Case: {data['use_case']}.\n" \
-                  f"- : string; Brief analysis of the Tokenomics: {data['tokenomics']}.\n" \
+                  f"- Brief analysis of the Tokenomics: {data['tokenomics']}.\n" \
                   f"- Regulatory Compliance: {data['compliance']}.\n" \
                   f"- Partnerships and Collaborations: {data['partnerships']}.\n" \
                   f"- Security Aspects: {data['security']}.\n" \
