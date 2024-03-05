@@ -33,21 +33,15 @@ isError = False
 num_jobs = 0
 
 def format_token_info(tokenName, tokenSymbol):
-    # If both tokenName and tokenSymbol are "No information found", return them as is.
     if tokenName == "No information found" and tokenSymbol == "No information found":
         return tokenName, tokenSymbol
-
-    # Helper function to remove non-alphanumeric characters and format strings.
     def clean_and_format(string, format_type):
-        # Remove non-alphanumeric characters.
         cleaned_string = re.sub(r'\W+', '', string)
         if format_type == 'camelCase':
-            # Split by spaces, capitalize the first letter of each word, and join.
             return ''.join(word.capitalize() for word in cleaned_string.split())
         elif format_type == 'ALLCAPS':
             return cleaned_string.upper()
 
-    # Process tokenName and tokenSymbol based on the specified rules.
     if tokenName != "No information found":
         formatted_tokenName = clean_and_format(tokenName, 'camelCase')
     else:
