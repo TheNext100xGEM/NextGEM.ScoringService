@@ -78,14 +78,14 @@ def crawl(url: str):
             document_url_list.extend(document_urls)
             level_1.extend([link for link in page_links if link not in visited])
 
-    for current_url in level_1:
+    """for current_url in level_1:
         if current_url not in visited:
             visited.add(current_url)
             page_links, document_urls = get_links(current_url)
             document_url_list.extend(document_urls)
             level_2.extend([link for link in page_links if link not in visited])
         if len(level_2) > 100:
-            break
+            break"""
 
     # Parse pages
     url_list = set(level_0 + level_1 + level_2)
