@@ -162,7 +162,7 @@ def scorings(taskid):
         return jsonify({'isFinished': False}), 200
 
     #small bug fix that waits for the creation of analyzed field, which means the info is actually ready
-    if not scoring_info.hasattr("analyzed"):
+    if not ( "analyzed" in scoring_info ):
         return jsonify({'isFinished': False}), 200
 
     return jsonify({'isFinished': True, 'scoringInfo': scoring_info}), 200
