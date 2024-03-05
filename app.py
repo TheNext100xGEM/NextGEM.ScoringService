@@ -1,3 +1,4 @@
+import re
 from flask import Flask, request, jsonify
 import threading
 from crawler import crawl
@@ -30,6 +31,35 @@ dictConfig({
 app = Flask(__name__)
 isError = False
 num_jobs = 0
+
+def format_token_info(tokenName, tokenSymbol):
+    # If both tokenName and tokenSymbol are "No information found", return them as is.
+    if tokenName == "No information found" and tokenSymbol == "No information found":
+        return tokenName, tokenSymbol
+
+    # Helper function to remove non-alphanumeric characters and format strings.
+    def clean_and_format(string, format_type):
+        # Remove non-alphanumeric characters.
+        cleaned_string = re.sub(r'\W+', '', string)
+        if format_type == 'camelCase':
+            # Split by spaces, capitalize the first letter of each word, and join.
+            return ''.join(word.capitalize() for word in cleaned_string.split())
+        elif format_type == 'ALLCAPS':
+            return cleaned_string.upper()
+
+    # Process tokenName and tokenSymbol based on the specified rules.
+    if tokenName != "No information found":
+        formatted_tokenName = clean_and_format(tokenName, 'camelCase')
+    else:
+        formatted_tokenName = clean_and_format(tokenSymbol, 'camelCase')
+    
+    if tokenSymbol != "No information found":
+        formatted_tokenSymbol = clean_and_format(tokenSymbol, 'ALLCAPS')
+    else:
+        formatted_tokenSymbol = clean_and_format(tokenName, 'ALLCAPS')
+
+    return formatted_tokenName, formatted_tokenSymbol
+
 
 #If true, ai analysis will be returned on the request. If false, just the scraped info of website
 ai_analysis = False
@@ -79,6 +109,9 @@ def processing_task(url: str, taskid: str):
 
 
     # Saving results
+
+    formatted_tokenName, formatted_tokenSymbol = format_token_info(token_info['tokenName'], token_info['tokenSymbol'])
+    
     result = {
         "iteration": 1,
         "analyzed": True,
