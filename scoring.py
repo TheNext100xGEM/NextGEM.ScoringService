@@ -83,7 +83,7 @@ def format_text(data: dict):
                   f"\nCons:\n{data['cons']}\n"
     return {
         'description': description,
-        'score': data['score']
+        'score': data['score'] if data['score'] is not None else 1
     }
 
 
