@@ -9,6 +9,8 @@ from scoring import call_gpt_agent, call_gemini_agent, call_mistral_agent
 import database_connection as db
 from logging.config import dictConfig
 
+
+
 dictConfig({
     'version': 1,
     'formatters': {'default': {
@@ -29,6 +31,8 @@ app = Flask(__name__)
 isError = False
 num_jobs = 0
 
+#If true, ai analysis will be returned on the request. If false, just the scraped info of website
+ai_analysis = False
 
 def processing_task(url: str, taskid: str):
     # Tracking active processing jobs
@@ -51,24 +55,28 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] Lunchpad info extracted: {lunchpad_info}')
 
     # Scoring
-    project_context = get_project_context(text_chunks, embeddings, top_k=40)
-    app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
-    app.logger.info(f'[{taskid}] Calling OpenAI agent.')
-    res1 = call_gpt_agent(project_context, app.logger)
-    app.logger.info(f'[{taskid}] OpenAI score: {res1["score"]}')
-    app.logger.info(f'[{taskid}] OpenAI description:\n{res1["description"]}')
-    app.logger.info(f'[{taskid}] Calling Mistral agent.')
-    res2 = call_mistral_agent(project_context, app.logger)
-    app.logger.info(f'[{taskid}] Mistral score: {res2["score"]}')
-    app.logger.info(f'[{taskid}] Mistral description:\n{res2["description"]}')
-    app.logger.info(f'[{taskid}] Calling Gemini agent.')
-    res3 = call_gemini_agent(project_context, app.logger)
-    app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
-    app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
+    if(ai_analysis):
+        project_context = get_project_context(text_chunks, embeddings, top_k=40)
+        app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
+        app.logger.info(f'[{taskid}] Calling OpenAI agent.')
+        res1 = call_gpt_agent(project_context, app.logger)
+        app.logger.info(f'[{taskid}] OpenAI score: {res1["score"]}')
+        app.logger.info(f'[{taskid}] OpenAI description:\n{res1["description"]}')
+        app.logger.info(f'[{taskid}] Calling Mistral agent.')
+        res2 = call_mistral_agent(project_context, app.logger)
+        app.logger.info(f'[{taskid}] Mistral score: {res2["score"]}')
+        app.logger.info(f'[{taskid}] Mistral description:\n{res2["description"]}')
+        app.logger.info(f'[{taskid}] Calling Gemini agent.')
+        res3 = call_gemini_agent(project_context, app.logger)
+        app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
+        app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
+    
+        # Summary
+        summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
+        app.logger.info(f'[{taskid}] Summary generated: {summary}')
+    else:
+        app.logger.info(f'[{taskid}] Skipping AI Analysis because it is disabled..')
 
-    # Summary
-    summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
-    app.logger.info(f'[{taskid}] Summary generated: {summary}')
 
     # Saving results
     result = {
@@ -79,15 +87,21 @@ def processing_task(url: str, taskid: str):
         "tokenName": token_info['tokenName'],
         "tokenSymbol": token_info['tokenSymbol'],
         "chains": token_info['chains'],
-        "submittedDescription": lunchpad_info,
-        'gpt_score': res1['score'],
-        'gpt_raw': res1['description'],
-        'mistral_score': res2['score'],
-        'mistral_raw': res2['description'],
-        'gemini_score': res3['score'],
-        'gemini_raw': res3['description'],
-        'llm_summary': summary,
+        "submittedDescription": lunchpad_info
     }
+
+    if(ai_analysis):
+        result = {
+            **result, 
+            'gpt_score': res1['score'],
+            'gpt_raw': res1['description'],
+            'mistral_score': res2['score'],
+            'mistral_raw': res2['description'],
+            'gemini_score': res3['score'],
+            'gemini_raw': res3['description'],
+            'llm_summary': summary,
+        }
+    
     db.store(taskid, result)
     app.logger.info(f'[{taskid}] Results saved in DB.')
 
