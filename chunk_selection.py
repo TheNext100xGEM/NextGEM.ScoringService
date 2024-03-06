@@ -5,6 +5,9 @@ import numpy as np
 
 
 def get_project_context(text_chunks, embeddings, prompt=base_prompt, top_k=10):
+    if len(text_chunks) == 0:
+        return 'No document was scrapped. Score accordingly!'
+
     _, prompt_emb = vectorize([prompt], chunk_size=99999)
 
     similarities = cosine_similarity(prompt_emb, embeddings)[0]
