@@ -107,11 +107,13 @@ def crawl(url: str):
     url_list = set(level_0 + level_1 + level_2)
     page_texts_raw = [(i, get_page_text(i)) for i in url_list]
     page_texts = [f"The following text is from {i}:\n{text}" for i, text in page_texts_raw if len(text) > 0]
+    page_texts = list(set(page_texts))  # deduplication
 
     # Parse pdf-s (e.g. whitepapers)
     document_texts_raw = [(i, get_pdf_text(i)) for i in document_url_list]
     document_texts = [f"The following text is from {i}:\n{text}" for i, text in document_texts_raw if len(text) > 0]
-
+    document_texts = list(set(document_texts))  # deduplication
+    
     # Twitter and telegram links
     twitter_link, telegram_link = get_important_urls(url)
 
