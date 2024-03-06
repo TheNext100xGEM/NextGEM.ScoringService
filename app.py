@@ -1,4 +1,3 @@
-import re
 from flask import Flask, request, jsonify
 import threading
 from crawler import crawl
@@ -9,7 +8,6 @@ from llm_connection import get_openai_completion
 from scoring import call_gpt_agent, call_gemini_agent, call_mistral_agent
 import database_connection as db
 from logging.config import dictConfig
-
 
 
 dictConfig({
@@ -32,31 +30,9 @@ app = Flask(__name__)
 isError = False
 num_jobs = 0
 
-def format_token_info(tokenName, tokenSymbol):
-    if tokenName == "No information found" and tokenSymbol == "No information found":
-        return tokenName, tokenSymbol
-    def clean_and_format(string, format_type):
-        cleaned_string = re.sub(r'\W+', '', string)
-        if format_type == 'camelCase':
-            return ''.join(word.capitalize() for word in cleaned_string.split())
-        elif format_type == 'ALLCAPS':
-            return cleaned_string.upper()
-
-    if tokenName != "No information found":
-        formatted_tokenName = clean_and_format(tokenName, 'camelCase')
-    else:
-        formatted_tokenName = clean_and_format(tokenSymbol, 'camelCase')
-    
-    if tokenSymbol != "No information found":
-        formatted_tokenSymbol = clean_and_format(tokenSymbol, 'ALLCAPS')
-    else:
-        formatted_tokenSymbol = clean_and_format(tokenName, 'ALLCAPS')
-
-    return formatted_tokenName, formatted_tokenSymbol
-
-
 #If true, ai analysis will be returned on the request. If false, just the scraped info of website
 ai_analysis = False
+
 
 def processing_task(url: str, taskid: str):
     # Tracking active processing jobs
@@ -79,7 +55,7 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] Lunchpad info extracted: {lunchpad_info}')
 
     # Scoring
-    if(ai_analysis):
+    if ai_analysis:
         project_context = get_project_context(text_chunks, embeddings, top_k=40)
         app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
         app.logger.info(f'[{taskid}] Calling OpenAI agent.')
@@ -99,25 +75,21 @@ def processing_task(url: str, taskid: str):
         summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
         app.logger.info(f'[{taskid}] Summary generated: {summary}')
     else:
-        app.logger.info(f'[{taskid}] Skipping AI Analysis because it is disabled..')
-
+        app.logger.info(f'[{taskid}] Skipping AI Analysis because it is disabled.')
 
     # Saving results
-
-    formatted_tokenName, formatted_tokenSymbol = format_token_info(token_info['tokenName'], token_info['tokenSymbol'])
-    
     result = {
         "iteration": 0,
         "analyzed": False,
         "twitterLink": twitter_link,
         "telegramLink": telegram_link,
-        "tokenName": formatted_tokenName,
-        "tokenSymbol": formatted_tokenSymbol,
+        "tokenName": token_info['tokenName'],
+        "tokenSymbol": token_info['tokenSymbol'],
         "chains": token_info['chains'],
         "submittedDescription": lunchpad_info
     }
 
-    if(ai_analysis):
+    if ai_analysis:
         result = {
             **result, 
             "iteration": 1,
