@@ -14,6 +14,17 @@ def get_soup(driver, url: str):
     return soup
 
 
+def tabu_check_url(url: str):
+    if url is None:
+        return False
+
+    for item in ['twitter', 'facebook', 'dextools']:
+        if item in url:
+            return False
+
+    return True
+
+
 def get_links(driver, url: str, logger):
     """ Get all page and document links from a given URL """
     links = []
@@ -25,7 +36,7 @@ def get_links(driver, url: str, logger):
             href = link.get('href')
             if 'http' not in href:
                 href = url + href
-            if href:
+            if tabu_check_url(href):
                 if href.endswith('.pdf'):
                     documents.append(href)
                 else:
