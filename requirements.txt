@@ -8,3 +8,4 @@ langchain==0.1.7
 numpy
 scikit-learn
 pymongo
+web3
