@@ -3,9 +3,9 @@ import threading
 from crawler import crawl
 from vectorize import vectorize
 from chunk_selection import get_project_context
-from extraction import extract_token_info, extract_lunchpad_info
+from extraction import extract_memecoin_status, extract_token_info, extract_lunchpad_info
 from llm_connection import get_openai_completion
-from scoring import call_gpt_agent, call_gemini_agent, call_mistral_agent
+from scoring import strict_prompt, moonboy_prompt, call_gpt_agent, call_gemini_agent, call_mistral_agent
 import database_connection as db
 from logging.config import dictConfig
 
@@ -30,8 +30,9 @@ app = Flask(__name__)
 isError = False
 num_jobs = 0
 
-#If true, ai analysis will be returned on the request. If false, just the scraped info of website
-ai_analysis = False
+# If true, ai analysis will be returned on the request. If false, just the scraped info of website
+ai_analysis = True
+is_meme_season = True  # TODO set by hand until calculation is automated
 
 
 def processing_task(url: str, taskid: str):
@@ -49,25 +50,30 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] Project documentation chunked and vectorized. Chunk count: {len(text_chunks)}')
 
     # Extracting information
+    is_memecoin = extract_memecoin_status(text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Is it a memecoin? {is_memecoin}')
     token_info = extract_token_info(text_chunks, embeddings, app.logger)
     app.logger.info(f'[{taskid}] Token info extracted: {token_info}')
     lunchpad_info = extract_lunchpad_info(text_chunks, embeddings, app.logger)
     app.logger.info(f'[{taskid}] Lunchpad info extracted: {lunchpad_info}')
 
     # Scoring
+    is_strict = False if is_meme_season and is_memecoin else True  # Activates moonboy prompt if it's memecoin season
+
     if ai_analysis:
-        project_context = get_project_context(text_chunks, embeddings, top_k=40)
+        prompt = strict_prompt if is_strict else moonboy_prompt
+        project_context = get_project_context(text_chunks, embeddings, prompt=prompt, top_k=40)
         app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
         app.logger.info(f'[{taskid}] Calling OpenAI agent.')
-        res1 = call_gpt_agent(project_context, app.logger)
+        res1 = call_gpt_agent(project_context, is_strict, app.logger)
         app.logger.info(f'[{taskid}] OpenAI score: {res1["score"]}')
         app.logger.info(f'[{taskid}] OpenAI description:\n{res1["description"]}')
         app.logger.info(f'[{taskid}] Calling Mistral agent.')
-        res2 = call_mistral_agent(project_context, app.logger)
+        res2 = call_mistral_agent(project_context, is_strict, app.logger)
         app.logger.info(f'[{taskid}] Mistral score: {res2["score"]}')
         app.logger.info(f'[{taskid}] Mistral description:\n{res2["description"]}')
         app.logger.info(f'[{taskid}] Calling Gemini agent.')
-        res3 = call_gemini_agent(project_context, app.logger)
+        res3 = call_gemini_agent(project_context, is_strict, app.logger)
         app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
         app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
     
@@ -102,7 +108,7 @@ def processing_task(url: str, taskid: str):
             'gemini_raw': res3['description'],
             'llm_summary': summary,
         }
-    
+
     db.store(taskid, result)
     app.logger.info(f'[{taskid}] Results saved in DB.')
 
@@ -135,8 +141,8 @@ def scorings(taskid):
     if scoring_info is None:
         return jsonify({'isFinished': False}), 200
 
-    #small bug fix that waits for the creation of analyzed field, which means the info is actually ready
-    if not ( "analyzed" in scoring_info ):
+    # Small bug fix that waits for the creation of analyzed field, which means the info is actually ready
+    if not ("analyzed" in scoring_info):
         return jsonify({'isFinished': False}), 200
 
     return jsonify({'isFinished': True, 'scoringInfo': scoring_info}), 200

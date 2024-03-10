@@ -1,10 +1,9 @@
 from vectorize import vectorize
-from scoring import base_prompt
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 
-def get_project_context(text_chunks, embeddings, prompt=base_prompt, top_k=10):
+def get_project_context(text_chunks, embeddings, prompt, top_k=10):
     if len(text_chunks) == 0:
         return 'No document was scrapped. Score accordingly!'
 

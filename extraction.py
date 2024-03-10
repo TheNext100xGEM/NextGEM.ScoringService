@@ -7,6 +7,33 @@ from token_contract import query_base_token_info
 
 err_msg = "Extraction error"
 
+memecoin_prompt = 'You are a helpful assistant. brief and precise. You are extracting information from scrapped crypto project websites.\n' \
+                  'Decide if the project is about a memecoin or not!\n\n' \
+                  'Answer format is parseable JSON!\n' \
+                  'Example 1: {"is_memecoin": true}\n' \
+                  'Example 2: {"is_memecoin": false}\n\n' \
+                  'Text chunks from website:\n'
+
+
+def extract_memecoin_status(text_chunks, embeddings, logger, max_retries=3):
+    project_context = get_project_context(text_chunks, embeddings, prompt=memecoin_prompt, top_k=10)
+    #logger.info(f'chain extraction context: {project_context}')
+
+    error_out = False
+    retries = 0
+    while retries < max_retries:
+        response = get_openai_completion(memecoin_prompt + project_context, logger)
+        if response is None:
+            time.sleep(1)
+        else:
+            try:
+                return json.loads(response)['is_memecoin']
+            except Exception as e:
+                logger.info(f'Failed json conversion: {response} - {e}')
+                return error_out
+    return error_out
+
+
 token_prompt = 'You are a helpful assistant. brief and precise. You are extracting information from scrapped crypto project websites.\n' \
                'Extract the name of the token name, token symbol, ETH style complete token contract address and which chains is the project deployed on!\n' \
                'The token can be referenced as coin!' \
@@ -33,9 +60,9 @@ def extract_token_info(text_chunks, embeddings, logger, max_retries=3):
                 time.sleep(1)
             else:
                 try:
-                    response = json.loads(response)
-                    return response
-                except Exception:
+                    return json.loads(response)
+                except Exception as e:
+                    logger.info(f'Failed json conversion: {response} - {e}')
                     return error_out
         return error_out
 
@@ -57,6 +84,7 @@ def extract_token_info(text_chunks, embeddings, logger, max_retries=3):
         # Handling edge case if multiple token symbol is present (list of symbols)
         if type(token_symbol) is list:
             token_symbol = token_symbol[0]
+
         def clean_and_format(string, format_type):
             cleaned_string = re.sub(r'\W+', '', string)
             if format_type == 'camelCase':
