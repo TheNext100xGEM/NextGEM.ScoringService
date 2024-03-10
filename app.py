@@ -41,7 +41,7 @@ def processing_task(url: str, taskid: str):
 
     # Processing
     app.logger.info(f'[{taskid}] URL scrapping started.')
-    documents, twitter_link, telegram_link = crawl(url)  # scrape URL and related documents
+    documents, twitter_link, telegram_link = crawl(url, app.logger)  # scrape URL and related documents
     app.logger.info(f'[{taskid}] URL scrapping ended.')
     app.logger.info(f'[{taskid}] Twitter link: {twitter_link}')
     app.logger.info(f'[{taskid}] Telegram link: {telegram_link}')
