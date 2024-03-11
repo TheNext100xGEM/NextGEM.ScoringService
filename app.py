@@ -34,6 +34,41 @@ num_jobs = 0
 ai_analysis = True
 is_meme_season = True  # TODO set by hand until calculation is automated
 
+def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: str){
+    save_suffix = 'meme_' if uses_meme else ''
+    prompt = moonboy_prompt if uses_meme else strict_prompt
+    prompt_type = 'meme' if uses_meme else 'strict'
+
+    app.logger.info(f'[{taskid}] Generating analysis for project with prompt type: {prompt_type} ')
+    project_context = get_project_context(text_chunks, embeddings, prompt=prompt, top_k=40)
+    app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
+    app.logger.info(f'[{taskid}] Calling OpenAI agent.')
+    res1 = call_gpt_agent(project_context, not uses_meme, app.logger)
+    app.logger.info(f'[{taskid}] OpenAI score: {res1["score"]}')
+    app.logger.info(f'[{taskid}] OpenAI description:\n{res1["description"]}')
+    app.logger.info(f'[{taskid}] Calling Mistral agent.')
+    res2 = call_mistral_agent(project_context, not uses_meme, app.logger)
+    app.logger.info(f'[{taskid}] Mistral score: {res2["score"]}')
+    app.logger.info(f'[{taskid}] Mistral description:\n{res2["description"]}')
+    app.logger.info(f'[{taskid}] Calling Gemini agent.')
+    res3 = call_gemini_agent(project_context, not uses_meme, app.logger)
+    app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
+    app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
+
+    # Summary
+    summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
+    app.logger.info(f'[{taskid}] Summary generated: {summary}')
+
+    return {
+        f'gpt_{save_suffix}score': res1['score'],
+        f'gpt_{save_suffix}raw': res1['description'],
+        f'mistral_{save_suffix}score': res2['score'],
+        f'mistral_{save_suffix}raw': res2['description'],
+        f'gemini_{save_suffix}score': res3['score'],
+        f'gemini_{save_suffix}raw': res3['description'],
+        f'{save_suffix}llm_summary': summary,
+    }
+}
 
 def processing_task(url: str, taskid: str):
     # Tracking active processing jobs
@@ -58,31 +93,25 @@ def processing_task(url: str, taskid: str):
     app.logger.info(f'[{taskid}] Lunchpad info extracted: {lunchpad_info}')
 
     # Scoring
-    is_strict = False if is_meme_season and is_memecoin else True  # Activates moonboy prompt if it's memecoin season
+    uses_meme = is_meme_season and is_memecoin  # Activates moonboy prompt if it's memecoin season
+    meme_results = {}
+    strict_results = {}
+
+    if uses_meme:
+        meme_results = process_with_prompt_type(
+            uses_meme=True,
+            text_chunks=text_chunks,
+            embeddings=embeddings,
+            taskid=taskid
+        )
 
     if ai_analysis:
-        prompt = strict_prompt if is_strict else moonboy_prompt
-        project_context = get_project_context(text_chunks, embeddings, prompt=prompt, top_k=40)
-        app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
-        app.logger.info(f'[{taskid}] Calling OpenAI agent.')
-        res1 = call_gpt_agent(project_context, is_strict, app.logger)
-        app.logger.info(f'[{taskid}] OpenAI score: {res1["score"]}')
-        app.logger.info(f'[{taskid}] OpenAI description:\n{res1["description"]}')
-        app.logger.info(f'[{taskid}] Calling Mistral agent.')
-        res2 = call_mistral_agent(project_context, is_strict, app.logger)
-        app.logger.info(f'[{taskid}] Mistral score: {res2["score"]}')
-        app.logger.info(f'[{taskid}] Mistral description:\n{res2["description"]}')
-        app.logger.info(f'[{taskid}] Calling Gemini agent.')
-        res3 = call_gemini_agent(project_context, is_strict, app.logger)
-        app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
-        app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
-    
-        # Summary
-        summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
-        app.logger.info(f'[{taskid}] Summary generated: {summary}')
-    else:
-        app.logger.info(f'[{taskid}] Skipping AI Analysis because it is disabled.')
-
+        strict_results = process_with_prompt_type(
+            uses_meme=False,
+            text_chunks=text_chunks,
+            embeddings=embeddings,
+            taskid=taskid
+        )
     # Saving results
     result = {
         "iteration": 0,
@@ -96,18 +125,15 @@ def processing_task(url: str, taskid: str):
         "submittedDescription": lunchpad_info
     }
 
+    if uses_meme:
+        result.update(meme_results)
+
     if ai_analysis:
         result = {
             **result, 
             "iteration": 1,
             "analyzed": True,
-            'gpt_score': res1['score'],
-            'gpt_raw': res1['description'],
-            'mistral_score': res2['score'],
-            'mistral_raw': res2['description'],
-            'gemini_score': res3['score'],
-            'gemini_raw': res3['description'],
-            'llm_summary': summary,
+            **strict_results
         }
 
     db.store(taskid, result)
