@@ -129,12 +129,13 @@ def processing_task(url: str, taskid: str):
         result.update(meme_results)
 
     if ai_analysis:
-        result = {
-            **result, 
-            "iteration": 1,
-            "analyzed": True,
-            **strict_results
-        }
+        result.update(
+            {
+                "iteration": 1,
+                "analyzed": True,
+                **strict_results
+            }
+        )
 
     db.store(taskid, result)
     app.logger.info(f'[{taskid}] Results saved in DB.')
