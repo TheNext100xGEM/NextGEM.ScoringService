@@ -34,7 +34,7 @@ num_jobs = 0
 ai_analysis = True
 is_meme_season = True  # TODO set by hand until calculation is automated
 
-def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: str)
+def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: str):
     save_suffix = 'meme_' if uses_meme else ''
     prompt = moonboy_prompt if uses_meme else strict_prompt
     prompt_type = 'meme' if uses_meme else 'strict'
