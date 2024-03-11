@@ -89,6 +89,7 @@ def processing_task(url: str, taskid: str):
         "analyzed": False,
         "twitterLink": twitter_link,
         "telegramLink": telegram_link,
+        "isMemecoin": is_memecoin,
         "tokenName": token_info['tokenName'],
         "tokenSymbol": token_info['tokenSymbol'],
         "chains": token_info['chains'],
