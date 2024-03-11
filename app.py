@@ -35,7 +35,7 @@ ai_analysis = False
 is_meme_season = True  # TODO set by hand until calculation is automated
 
 def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: str):
-    save_suffix = 'meme_' if uses_meme else ''
+    save_prefix = 'meme_' if uses_meme else ''
     prompt = moonboy_prompt if uses_meme else strict_prompt
     prompt_type = 'meme' if uses_meme else 'strict'
 
@@ -60,13 +60,13 @@ def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: s
     app.logger.info(f'[{taskid}] Summary generated: {summary}')
 
     return {
-        f'gpt_{save_suffix}score': res1['score'],
-        f'gpt_{save_suffix}raw': res1['description'],
-        f'mistral_{save_suffix}score': res2['score'],
-        f'mistral_{save_suffix}raw': res2['description'],
-        f'gemini_{save_suffix}score': res3['score'],
-        f'gemini_{save_suffix}raw': res3['description'],
-        f'{save_suffix}llm_summary': summary,
+        f'{save_prefix}gpt_score': res1['score'],
+        f'{save_prefix}gpt_raw': res1['description'],
+        f'{save_prefix}mistral_score': res2['score'],
+        f'{save_prefix}mistral_raw': res2['description'],
+        f'{save_prefix}gemini_score': res3['score'],
+        f'{save_prefix}gemini_raw': res3['description'],
+        f'{save_prefix}llm_summary': summary,
     }
 
 
