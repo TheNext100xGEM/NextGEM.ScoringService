@@ -30,8 +30,8 @@ app = Flask(__name__)
 isError = False
 num_jobs = 0
 
-# If true, ai analysis will be returned on the request. If false, just the scraped info of website
-ai_analysis = True
+# If true, ai analysis will be returned on the request. If false, just the scraped info of website (and moonboy prompt)
+ai_analysis = False
 is_meme_season = True  # TODO set by hand until calculation is automated
 
 def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: str):
