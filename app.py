@@ -32,7 +32,8 @@ num_jobs = 0
 
 # If true, ai analysis will be returned on the request. If false, just the scraped info of website (and moonboy prompt)
 ai_analysis = False
-is_meme_season = True  # TODO set by hand until calculation is automated
+is_meme_season = True  # TODO set manually until calculation is automated
+
 
 def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: str):
     save_prefix = 'meme_' if uses_meme else ''
@@ -148,11 +149,18 @@ def processing_task(url: str, taskid: str):
 def score():
     """ Starting a project processing job """
     request_data = request.get_json()
-    taskid = db.create_new(request_data.get('websiteUrl', ''))
+    app.logger.info(f'Request arguments: {request_data}')
+
+    if not ('websiteUrl' in request_data or 'projectID' in request_data):
+        return jsonify('Missing argument'), 400
+
+    taskid, url = db.resolve_project(request_data, app.logger)
+    if taskid is None:
+        return jsonify('Project not found'), 404
 
     # Start the async job
-    app.logger.info(f'[{taskid}] Starting to process the project')
-    thread = threading.Thread(target=processing_task, args=(request_data.get('websiteUrl', ''), taskid,))
+    app.logger.info(f'[{taskid}] Starting to process: {url}')
+    thread = threading.Thread(target=processing_task, args=(url, taskid,))
     thread.start()
 
     return jsonify({'taskid': taskid}), 200
