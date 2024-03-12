@@ -6,6 +6,7 @@ from chunk_selection import get_project_context
 from extraction import extract_memecoin_status, extract_token_info, extract_lunchpad_info
 from llm_connection import get_openai_completion
 from scoring import strict_prompt, moonboy_prompt, call_gpt_agent, call_gemini_agent, call_mistral_agent
+from marketcap_utils import get_doge_data
 import database_connection as db
 from logging.config import dictConfig
 
@@ -185,6 +186,26 @@ def scorings(taskid):
         return jsonify({'isFinished': False}), 200
 
     return jsonify({'isFinished': True, 'scoringInfo': scoring_info}), 200
+
+
+@app.route('/memecoin-season', methods=['GET'])
+def memecoin_season():
+    """ Estimates if it is memecoin season or not """
+    doge = get_doge_data()
+    if doge is None:
+        jsonify({'error': 'Data source is unavailable'}), 500
+
+    doge_mc_dom = doge['quote']['USD']['market_cap_dominance']
+    doge_percent_change_30d = doge['quote']['USD']['percent_change_30d']
+    is_memecoin_season = True if doge_mc_dom > 0.05 and doge_percent_change_30d > 40 else False
+    db.update_memecoin_season(is_memecoin_season)
+
+    out = {
+        'isMemecoinSeason': is_memecoin_season,
+        'doge_mc_dominance': doge_mc_dom,
+        'doge_percent_change_30d': doge_percent_change_30d
+    }
+    return jsonify(out), 200
 
 
 @app.route('/status', methods=['GET'])
