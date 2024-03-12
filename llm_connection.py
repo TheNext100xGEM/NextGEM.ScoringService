@@ -38,7 +38,8 @@ def get_mistral_completion(prompt, logger, client=mistral_client, temp=0.0):
     try:
         chat_completion = client.chat(messages=[ChatMessage(role="user", content=prompt)],
                                       model="mistral-large-latest",
-                                      temperature=temp)
+                                      temperature=temp,
+                                      safe_mode=False)
         return chat_completion.choices[0].message.content.replace('```', '').replace('json', '')
     except Exception as e:
         logger.error(f'Mistral answer generation error: {e}')
@@ -63,7 +64,7 @@ def get_gemini_completion(prompt, logger, temp=0.0):
             "safetySettings": [
                 {
                     "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    "threshold": "BLOCK_ONLY_HIGH"
+                    "threshold": "BLOCK_NONE"
                 }
             ],
             "generationConfig": {

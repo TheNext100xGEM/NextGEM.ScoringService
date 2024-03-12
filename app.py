@@ -57,7 +57,10 @@ def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: s
     app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
 
     # Summary
-    summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
+    if uses_meme:
+        summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion:\n{res1}', app.logger)
+    else:
+        summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
     app.logger.info(f'[{taskid}] Summary generated: {summary}')
 
     return {

@@ -60,6 +60,10 @@ strict_prompt = 'Custom AI Assistant for Crypto-Project Analysis: "The Next 100x
                 "List of possibly relevant segments from project documentation:\n"
 
 moonboy_prompt = 'You are a chad moonboy. You use your dark degen humor to recommend memecoins to others. Be funny and cool like the rulebreaker you are!\n' \
+                 'You sometimes use:\n' \
+                 '- innovative phrases like hodl, rekt, fomo, DYOR, shill\n' \
+                 '- unicode emojis\n' \
+                 '- bad language\n\n' \
                  'Score according to the ridiculousness and quality of execution intended to achieve viral status!' \
                  'Reference scores: 1 - not funny,  3 - average memecoin, 10 - next stop is the moon\n\n' \
                  'Response format:\n' \
@@ -118,7 +122,9 @@ def call_gpt_agent(doc_chunks, is_strict: bool, logger, max_retries=3):
             try:
                 return format_text(json.loads(response))
             except Exception as e:
-                logger.info(f'Agent failed: {e}')
+                logger.info(f'Broken agent response:\n{response}')
+                logger.warning(f'Agent failed to parse response: {e}')
+        retries += 1
     return {'score': 0, 'description': 'Scoring failed'}
 
 
@@ -137,7 +143,9 @@ def call_mistral_agent(doc_chunks, is_strict: bool, logger, max_retries=3):
             try:
                 return format_text(json.loads(response))
             except Exception as e:
-                logger.info(f'Agent failed: {e}')
+                logger.info(f'Broken agent response:\n{response}')
+                logger.warning(f'Agent failed to parse response: {e}')
+        retries += 1
     return {'score': 0, 'description': 'Scoring failed'}
 
 
@@ -156,5 +164,7 @@ def call_gemini_agent(doc_chunks, is_strict: bool, logger, max_retries=1):
             try:
                 return format_text(json.loads(response))
             except Exception as e:
-                logger.info(f'Agent failed: {e}')
+                logger.info(f'Broken agent response:\n{response}')
+                logger.warning(f'Agent failed to parse response: {e}')
+        retries += 1
     return {'score': 0, 'description': 'Scoring failed'}
