@@ -19,18 +19,22 @@ def resolve_project(request_data: dict, logger):
         url = request_data['websiteUrl']
         result = project_collection.find_one({'websiteLink': url})
         if result is None:
-            logger.info(f'URL not found in DB! Creating new record!')
+            logger.info('URL not found in DB! Creating new record!')
             result = project_collection.insert_one({'websiteLink': url, 'createdAt': datetime.datetime.now()})
-            return str(result.inserted_id)
+            # Ensure two values are returned here by also returning url
+            return str(result.inserted_id), url  
+        # Ensure two values are returned
         return str(result['_id']), url
     elif 'projectID' in request_data.keys():
         scoring_info = get_task(request_data['projectID'])
         if scoring_info is not None:
             return request_data['projectID'], scoring_info['websiteLink']
         else:
-            return None, None  # Will result in 404 response
+            # This handles the case where the project ID is not found
+            return None, None  
     else:
-        raise 'Unexpected input for resolve_id function!'
+        # Correctly define the raise to throw an exception
+        raise Exception('Unexpected input for resolve_project function!')
 
 
 def store(taskid: str, data: dict):
