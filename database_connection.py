@@ -35,6 +35,14 @@ def resolve_project(request_data: dict, logger):
 
 def store(taskid: str, data: dict):
     data['updatedAt'] = datetime.datetime.now()
+    all_fields = project_collection.find_one({'_id': ObjectId(taskid)})
+    
+    #If all_fields already has field, do not overwrite.
+    
+    keys_to_remove = set(all_fields.keys()) - {'_id', 'updatedAt'}
+    for key in keys_to_remove:
+        data.pop(key, None)
+
     project_collection.update_one({'_id': ObjectId(taskid)}, {'$set': data})
 
 
