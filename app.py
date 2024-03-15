@@ -9,7 +9,7 @@ from scoring import strict_prompt, moonboy_prompt, call_gpt_agent, call_gemini_a
 from marketcap_utils import get_doge_data
 import database_connection as db
 from logging.config import dictConfig
-
+from swagger_ui import api_doc
 
 dictConfig({
     'version': 1,
@@ -28,6 +28,7 @@ dictConfig({
 })
 
 app = Flask(__name__)
+api_doc(app, config_path='./ScoringSystem-1.0.0-swagger.yaml', url_prefix='/docs', title='API doc')
 isError = False
 num_jobs = 0
 
