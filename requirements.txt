@@ -12,3 +12,4 @@ numpy
 scikit-learn
 pymongo
 web3
+swagger-ui-py

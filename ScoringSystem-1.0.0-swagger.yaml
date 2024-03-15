@@ -36,13 +36,16 @@ paths:
           application/json:
             schema:
               type: object
-              properties:
-                websiteUrl:
-                  type: string
-                additionalInfo:
-                  type: object
-              required:
-                - websiteUrl
+              oneOf:
+                - properties:
+                    websiteUrl:
+                      type: string
+                      description: URL of the website to be scored
+                - properties:
+                    projectID:
+                      type: string
+                      format: uuid
+                      description: ID of the project to be scored
       responses:
         '200':
           description: Scoring task started
@@ -50,6 +53,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaskID'
+        '400':
+          description: Missing argument
+        '404':
+          description: Project not found
 
 
   '/scorings/{taskid}':
@@ -77,7 +84,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
+                
+  '/meme-season':
+    get:
+      tags:
+        - Utilities
+      description: Returns guess about memecoin season and DOGE market indicators
+      operationId: meme-season
+      responses:
+        '200':
+          description: Memecoin season calculation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemecoinSeasonCalcResult'
+        '500':
+          description: Data source is unavailable
+                
 components:
   schemas:
     ServiceState:
@@ -122,6 +145,15 @@ components:
               $ref: '#/components/schemas/ScoringTemplate'
       required:
         - isFinished
+    MemecoinSeasonCalcResult:
+      type: object
+      properties:
+        isMemecoinSeason:
+          type: boolean
+        doge_mc_dominance:
+          type: number
+        doge_percent_change_30d:
+          type: number
     Error:
       type: object
       properties:
