@@ -1,3 +1,4 @@
+import time
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -6,19 +7,25 @@ from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
 
 
-def get_soup(driver, url: str):
-    driver.get(url)
-    while driver.execute_script("return document.readyState") != "complete":
-        pass
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    return soup
+def get_soup(driver, url: str, no_driver=False):
+    """ Scraping with or without Selenium driver """
+    if no_driver:
+        # Used as a fallback if selenium fails
+        response = requests.get(url)
+        source = response.text
+    else:
+        driver.get(url)
+        while driver.execute_script("return document.readyState") != "complete":
+            pass
+        source = driver.page_source
+    return BeautifulSoup(source, "html.parser")
 
 
 def tabu_check_url(url: str):
     if url is None:
         return False
 
-    for item in ['twitter', 'facebook', 'dextools']:
+    for item in ['twitter', 'facebook', 'dextools', 'dune', 'youtube', 'metamask', 'discord']:
         if item in url:
             return False
 
@@ -46,13 +53,22 @@ def get_links(driver, url: str, logger):
     return links, documents
 
 
-def get_page_text(driver, url: str):
+def get_page_text(driver, url: str, logger):
     """ Get all text fom a page """
     try:
         soup = get_soup(driver, url)
+        logger.info(f'{url} soup text length: {len(soup.text)}')
         paragraphs = soup.find_all(text=True)
-    except Exception:
-        return ''
+    except Exception as e:
+        # Probably a timeout or bot detection
+        logger.info(f'{url} get text exception: {e}')
+        try:
+            soup = get_soup(driver, url, no_driver=True)
+            logger.info(f'{url} soup text length: {len(soup.text)}')
+            paragraphs = soup.find_all(text=True)
+        except Exception as ee:
+            logger.info(f'{url} get text fallback exception: {ee}')
+            return ''
 
     texts = [p.text for p in paragraphs if len(p.text) > 3]
 
@@ -62,7 +78,7 @@ def get_page_text(driver, url: str):
     return '\n'.join(texts)
 
 
-def get_pdf_text(url: str):
+def get_pdf_text(url: str, logger):
     try:
         response = requests.get(url)
         pdf = fitz.open("pdf", response.content)
@@ -78,7 +94,8 @@ def get_pdf_text(url: str):
                 pass
 
         pdf.close()  # Close the document object when done
-    except Exception:
+    except Exception as e:
+        logger.info(f'Document parsing error: {e}')
         return ""
     return text
 
@@ -145,9 +162,15 @@ def crawl(url: str, logger):
             level_2.extend([link for link in page_links if link not in visited])
 
     # Parse pages
+    logger.info(f'Level 1: {len(list(set(level_1)))} - {list(set(level_1))}')
+    logger.info(f'Level 2: {len(list(set(level_2)))} - {list(set(level_2))}')
     url_list = set(level_0 + level_1 + level_2)
-    page_texts_raw = [(i, get_page_text(driver, i)) for i in url_list]
-    page_texts = [f"The following text is from {i}:\n{text}" for i, text in page_texts_raw if len(text) > 0]
+    page_texts = []
+    for i in url_list:
+        text = get_page_text(driver, i, logger)
+        if len(text) > 0:
+            page_texts.append(f"The following text is from {i}:\n{text}")
+        time.sleep(1)
     page_texts = list(set(page_texts))  # deduplication
 
     # Parse pdf-s (e.g. whitepapers)
@@ -160,5 +183,7 @@ def crawl(url: str, logger):
 
     # Clean up headless browser
     driver.quit()
+
+    logger.info(f'Page count: {len(page_texts)}; Doc count: {len(document_texts)}')
 
     return page_texts + document_texts, twitter_link, telegram_link
