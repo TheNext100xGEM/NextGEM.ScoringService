@@ -54,26 +54,34 @@ def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: s
     app.logger.info(f'[{taskid}] Mistral score: {res2["score"]}')
     app.logger.info(f'[{taskid}] Mistral description:\n{res2["description"]}')
     app.logger.info(f'[{taskid}] Calling Gemini agent.')
-    res3 = call_gemini_agent(project_context, not uses_meme, app.logger)
-    app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
-    app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
+    if not uses_meme:
+        res3 = call_gemini_agent(project_context, not uses_meme, app.logger)
+        app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
+        app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
 
     # Summary
     if uses_meme:
         summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion:\n{res1}', app.logger)
+        app.logger.info(f'[{taskid}] Summary generated: {summary}')
+        return {
+            f'{save_prefix}gpt_score': res1['score'],
+            f'{save_prefix}gpt_raw': res1['description'],
+            f'{save_prefix}mistral_score': res2['score'],
+            f'{save_prefix}mistral_raw': res2['description'],
+            f'{save_prefix}llm_summary': summary,
+        }
     else:
         summary = get_openai_completion(f'Summarize the project in one sentence!\nOpinion 1:\n{res1}\n\nOpinion 2:\n{res2}\n\nOpinion 3:\n{res3}', app.logger)
-    app.logger.info(f'[{taskid}] Summary generated: {summary}')
-
-    return {
-        f'{save_prefix}gpt_score': res1['score'],
-        f'{save_prefix}gpt_raw': res1['description'],
-        f'{save_prefix}mistral_score': res2['score'],
-        f'{save_prefix}mistral_raw': res2['description'],
-        f'{save_prefix}gemini_score': res3['score'],
-        f'{save_prefix}gemini_raw': res3['description'],
-        f'{save_prefix}llm_summary': summary,
-    }
+        app.logger.info(f'[{taskid}] Summary generated: {summary}')
+        return {
+            f'{save_prefix}gpt_score': res1['score'],
+            f'{save_prefix}gpt_raw': res1['description'],
+            f'{save_prefix}mistral_score': res2['score'],
+            f'{save_prefix}mistral_raw': res2['description'],
+            f'{save_prefix}gemini_score': res3['score'],
+            f'{save_prefix}gemini_raw': res3['description'],
+            f'{save_prefix}llm_summary': summary,
+        }
 
 
 def processing_task(url: str, taskid: str):
