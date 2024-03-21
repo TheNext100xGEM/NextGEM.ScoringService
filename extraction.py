@@ -35,11 +35,16 @@ def extract_memecoin_status(text_chunks, embeddings, logger, max_retries=3):
 
 
 token_prompt = 'You are a helpful assistant. brief and precise. You are extracting information from scrapped crypto project websites.\n' \
-               'Extract the name of the token name, token symbol, ETH style complete token contract address and which chains is the project deployed on!\n' \
+               'Extract the\n' \
+               '- token name\n' \
+               '- token symbol\n' \
+               '- ETH style complete token contract address\n' \
+               '- chains the project is deployed!\n' \
                'The token can be referenced as coin!' \
-               'Sometimes the token symbol starts with a $ sign!' \
+               'Sometimes the token symbol starts with a $ sign! Token symbols have multiple uppercase letter!' \
                'Project tokens often paired with other currencies like USD, ETH, SOL, etc.\n' \
-               'If there is no information in the text for a field then answer: No information found!\n' \
+               'Sort token symbols by importance for the project.\n' \
+               'If there is no information in the text for a JSON field then answer: No information found!\n' \
                'Answer format is parseable JSON!\n' \
                'Example 1: {"tokenName": "ExampleToken", "tokenSymbol": "ET", "chains": ["Ethereum", "BSC"], "token_contract_address": ["0x323665443CEf804A3b5206103304BD4872EA4253"]}\n' \
                'Example 2: {"tokenName": "DummyTokenName", "tokenSymbol": "TIA", "chains": ["Solana"], "token_contract_address": "No information found"}\n' \
@@ -49,7 +54,16 @@ token_prompt = 'You are a helpful assistant. brief and precise. You are extracti
 
 def extract_token_info(text_chunks, embeddings, logger, max_retries=3):
     project_context = get_project_context(text_chunks, embeddings, prompt=token_prompt, top_k=10)
-    #logger.info(f'chain extraction context: {project_context}')
+
+    # Help LLM by recommending token symbol candidates with regex
+    def find_token_symbol_candidates(s):
+        # Pattern to match words that contain at least two consecutive uppercase letters
+        pattern = r'\b\w*[A-Z]{2,}\w*\b'
+        return list(set(re.findall(pattern, s))) # deduplicated
+    token_symbol_candidates = find_token_symbol_candidates(project_context)
+    if len(token_symbol_candidates) > 0:
+        project_context = f'Regex token symbol candidates: {token_symbol_candidates}\n\n' + project_context
+    logger.info(f'chain extraction context: {project_context}')
 
     def call_llm(token_prompt, project_context, logger, max_retries):
         error_out = {"tokenName": err_msg, "tokenSymbol": err_msg, "chains": err_msg, "token_contract_address": err_msg}
