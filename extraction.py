@@ -63,7 +63,7 @@ def extract_token_info(text_chunks, embeddings, logger, max_retries=3):
     token_symbol_candidates = find_token_symbol_candidates(project_context)
     if len(token_symbol_candidates) > 0:
         project_context = f'Regex token symbol candidates: {token_symbol_candidates}\n\n' + project_context
-    logger.info(f'chain extraction context: {project_context}')
+    #logger.info(f'chain extraction context: {project_context}')
 
     def call_llm(token_prompt, project_context, logger, max_retries):
         error_out = {"tokenName": err_msg, "tokenSymbol": err_msg, "chains": err_msg, "token_contract_address": err_msg}

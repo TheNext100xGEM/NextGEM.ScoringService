@@ -14,6 +14,24 @@ with open('config.json', 'r') as file:
 
 scrapping_api = config["SCRAPPING_API"]
 
+url_tabu_patterns = [
+    'twitter', 'facebook', 'youtube', 'discord',
+    'dextools', 'dune', 'scan.',  # etherscan.io, bscscan.io and others variants
+    'github',
+    'metamask'
+]
+
+
+def tabu_check_url(url: str):
+    if url is None:
+        return False
+
+    for item in url_tabu_patterns:
+        if item in url:
+            return False
+
+    return True
+
 
 def get_soup(driver, url: str, no_driver=False):
     """ Scraping with or without Selenium driver """
@@ -44,17 +62,6 @@ def soup_to_text(soup):
         return ''
     else:
         return text
-
-
-def tabu_check_url(url: str):
-    if url is None:
-        return False
-
-    for item in ['twitter', 'facebook', 'dextools', 'dune', 'youtube', 'metamask', 'discord']:
-        if item in url:
-            return False
-
-    return True
 
 
 def format_url(url: str):
@@ -167,13 +174,18 @@ def crawl(url: str, logger):
 
     # Extract main page links
     page_links, document_urls, soup = get_links(driver, url, logger)
-    twitter_link, telegram_link = get_important_urls(page_links) # Eg.: twitter and telegram links
+    twitter_link, telegram_link = get_important_urls(page_links)  # Eg.: twitter and telegram links
     document_url_list.extend(document_urls)
     level_1.extend([format_url(link) for link in page_links if (link not in visited) and tabu_check_url(link)])
     if soup is not None:
         soups[url] = soup
 
     # Extract further links from connected pages
+    def keep_url(url_: str):
+        is_visited = url_ not in visited
+        is_tabu = tabu_check_url(url_)
+        is_type = ("docs" in url_) or ("blog" in url_)
+        return is_visited and is_tabu and is_type
     for current_url in level_1:
         if ("docs" not in current_url) and ("blog" not in current_url):
             continue  # Scrape only the project technical documentation and blog in 2 level depth
@@ -181,7 +193,7 @@ def crawl(url: str, logger):
             visited.add(current_url)
             page_links, document_urls, soup = get_links(driver, current_url, logger)
             document_url_list.extend(document_urls)
-            level_2.extend([format_url(link) for link in page_links if (link not in visited) and tabu_check_url(link)])
+            level_2.extend([format_url(link) for link in page_links if keep_url(link)])
             if soup is not None:
                 soups[current_url] = soup
 
