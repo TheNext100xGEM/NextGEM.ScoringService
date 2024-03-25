@@ -26,14 +26,15 @@ def vectorize(documents: List[str], logger=None, chunk_size: int = char_per_chun
         current_chunks = text_chunks[i:i + batch_size]
         retries = 0
         while retries < max_retries:
-            response = get_multiple_openai_embedding(current_chunks)
+            response = get_multiple_openai_embedding(current_chunks, logger=logger)
             if response is None:
                 retries += 1
                 if logger is not None:
                     logger.error(f'OpenAI embedding failed. Retry: {retries}')
                 time.sleep(1)
-        if response is not None:
-            text_chunks_out.extend(current_chunks)
-            embeddings.extend(response)
+            else:
+                text_chunks_out.extend(current_chunks)
+                embeddings.extend(response)
+                break
 
     return text_chunks_out, embeddings
