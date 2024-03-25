@@ -1,14 +1,16 @@
 import time
 from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from llm_connection import get_openai_embedding
+from llm_connection import get_multiple_openai_embedding
 
 
 estimated_char_per_token = 3
-chunk_size = 500 * estimated_char_per_token
+char_per_chunk = 500 * estimated_char_per_token
+
+batch_size = 500
 
 
-def vectorize(documents: List[str], chunk_size: int = chunk_size, max_retries: int = 3):
+def vectorize(documents: List[str], logger=None, chunk_size: int = char_per_chunk, max_retries: int = 10):
     if len(documents) == 0:
         return [], []
     
@@ -18,17 +20,20 @@ def vectorize(documents: List[str], chunk_size: int = chunk_size, max_retries: i
     text_chunks = [c.page_content for c in chunks]
 
     # Create embeddings for text chunks
+    text_chunks_out = []
     embeddings = []
-    for text in text_chunks:
+    for i in range(0, len(text_chunks), batch_size):
+        current_chunks = text_chunks[i:i + batch_size]
         retries = 0
         while retries < max_retries:
-            response = get_openai_embedding(text)
+            response = get_multiple_openai_embedding(current_chunks)
             if response is None:
+                retries += 1
+                if logger is not None:
+                    logger.error(f'OpenAI embedding failed. Retry: {retries}')
                 time.sleep(1)
-            else:
-                break
-        if response is None:
-            continue
-        embeddings.append(response)
+        if response is not None:
+            text_chunks_out.extend(current_chunks)
+            embeddings.extend(response)
 
-    return text_chunks, embeddings
+    return text_chunks_out, embeddings

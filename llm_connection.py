@@ -23,6 +23,16 @@ def get_openai_embedding(text, client=openai_client):
         return None
 
 
+def get_multiple_openai_embedding(text_list, client=openai_client):
+    try:
+        response = client.embeddings.create(model="text-embedding-3-small",
+                                            input=text_list,
+                                            encoding_format="float")
+        return [item.embedding for item in response.data]
+    except:
+        return None
+
+
 def get_openai_completion(prompt, logger, client=openai_client, temp=0.0):
     try:
         chat_completion = client.chat.completions.create(messages=[{"role": "user", "content": prompt}],
