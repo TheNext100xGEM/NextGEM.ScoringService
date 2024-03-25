@@ -26,7 +26,7 @@ def vectorize(documents: List[str], logger=None, chunk_size: int = char_per_chun
         current_chunks = text_chunks[i:i + batch_size]
         retries = 0
         while retries < max_retries:
-            response = get_multiple_openai_embedding(current_chunks, logger=logger)
+            response = get_multiple_openai_embedding(current_chunks)
             if response is None:
                 retries += 1
                 if logger is not None:
