@@ -208,7 +208,7 @@ def scorings(taskid):
     if not ("analyzed" in scoring_info):
         return jsonify({'isFinished': False}), 200
 
-    return jsonify({'isFinished': True, 'scoringInfo': scoring_info}), 200
+    return jsonify({'isFinished': scoring_info.analyzed, 'scoringInfo': scoring_info}), 200
 
 
 @app.route('/memecoin-season', methods=['GET'])
