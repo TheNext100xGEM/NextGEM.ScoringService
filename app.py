@@ -3,7 +3,7 @@ import threading
 from crawler import crawl
 from vectorize import vectorize
 from chunk_selection import get_project_context
-from extraction import extract_memecoin_status, extract_token_info, extract_lunchpad_info
+from extraction import *
 from llm_connection import get_openai_completion
 from scoring import strict_prompt, moonboy_prompt, call_gpt_agent, call_gemini_agent, call_mistral_agent
 from marketcap_utils import get_doge_data
@@ -91,20 +91,36 @@ def processing_task(url: str, taskid: str):
 
     # Processing
     app.logger.info(f'[{taskid}] URL scrapping started.')
-    documents, twitter_link, telegram_link = crawl(url, app.logger)  # scrape URL and related documents
+    documents, social_links = crawl(url, app.logger)  # scrape URL and related documents
     app.logger.info(f'[{taskid}] URL scrapping ended.')
-    app.logger.info(f'[{taskid}] Twitter link: {twitter_link}')
-    app.logger.info(f'[{taskid}] Telegram link: {telegram_link}')
-    text_chunks, embeddings = vectorize(documents)  # chunk documents and vectorize chunks
+    app.logger.info(f'[{taskid}] Social links: {social_links}')
+    text_chunks, embeddings = vectorize(documents, logger=app.logger)  # chunk documents and vectorize chunks
     app.logger.info(f'[{taskid}] Project documentation chunked and vectorized. Chunk count: {len(text_chunks)}')
 
     # Extracting information
-    is_memecoin = extract_memecoin_status(text_chunks, embeddings, app.logger)
+    is_memecoin = extract_memecoin_status(url, text_chunks, embeddings, app.logger)
     app.logger.info(f'[{taskid}] Is it a memecoin? {is_memecoin}')
-    token_info = extract_token_info(text_chunks, embeddings, app.logger)
+    token_info = extract_token_info(url, text_chunks, embeddings, app.logger)
     app.logger.info(f'[{taskid}] Token info extracted: {token_info}')
-    lunchpad_info = extract_lunchpad_info(text_chunks, embeddings, app.logger)
-    app.logger.info(f'[{taskid}] Lunchpad info extracted: {lunchpad_info}')
+
+    ### PDF related. Will be moved to a different endpoint. ###
+    # TODO details
+    # summary = get summary field from DB ?
+    # narrative = get category field from DB ?
+    # details = do the "product description extraction" with marketing maybe?
+    industry_info = extract_industry_info(url, text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Industry info extracted: {industry_info}')
+    team_info = extract_team_info(url, text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Team info extracted: {team_info}')
+    backers_info = extract_backers_info(url, text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Backers info extracted: {backers_info}')
+    tokenomics_info = extract_tokenomics_info(url, text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Tokenomics info extracted: {tokenomics_info}')
+    financials_info = extract_financials_info(url, text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Financials info extracted: {financials_info}')
+    market_info = extract_market_strat_prompt_info(url, text_chunks, embeddings, app.logger)
+    app.logger.info(f'[{taskid}] Market info extracted: {market_info}')
+    ### PDF related. Will be moved to a different endpoint. ###
 
     # Scoring
     uses_meme = is_meme_season and is_memecoin  # Activates moonboy prompt if it's memecoin season

@@ -7,6 +7,7 @@ from selenium_stealth import stealth
 from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
 import random
+from typing import List
 
 # Scrapping API uri (to parallelize calls)
 with open('config.json', 'r') as file:
@@ -15,7 +16,7 @@ with open('config.json', 'r') as file:
 scrapping_api = config["SCRAPPING_API"]
 
 url_tabu_patterns = [
-    'twitter', 'facebook', 'youtube', 'discord',
+    'twitter', 'facebook', 'youtube', 'discord', 'instagram',
     'dextools', 'dune', 'scan.',  # etherscan.io, bscscan.io and others variants
     'github',
     'metamask'
@@ -51,14 +52,14 @@ def soup_to_text(soup):
     """ Extract text from bs4 soup """
     paragraphs = soup.find_all(text=True)
 
-    texts = [p.text for p in paragraphs if len(p.text) > 1]  # Filter short texts
+    texts = [p.text for p in paragraphs if len(p.text) > 1 and " " in p.text]  # Filter short texts
 
     # Concat text segments
     if len(texts) > 1:
         texts = [texts[i] for i in range(1, len(texts) - 1) if texts[i] != texts[i + 1]]
     text = '\n'.join(texts)
 
-    if '404 Page Not Found' in text:
+    if 'page not found' in text.lower():
         return ''
     else:
         return text
@@ -79,9 +80,11 @@ def get_links(driver, url: str, logger):
     soup = None
     try:
         soup = get_soup(driver, url)
-        #logger.info(soup)
+        # logger.info(soup)
         for link in soup.find_all('a'):
             href = link.get('href')
+            if href is None:
+                continue
             if 'http' not in href:
                 href = url + href
             if href.endswith('.pdf'):
@@ -131,17 +134,34 @@ def get_pdf_text(url: str, logger):
 
         pdf.close()  # Close the document object when done
     except Exception as e:
-        logger.info(f'{url} Document parsing error: {e}')
+        logger.info(f'{url} Document parsing error: {response} - {e}')
         return ""
     return text
 
 
-def get_important_urls(links):
-    twitter_link = [link for link in links if 'twitter.com' in link]
-    twitter_link = None if len(twitter_link) == 0 else twitter_link[0]
-    telegram_link = [link for link in links if 't.me' in link]
-    telegram_link = None if len(telegram_link) == 0 else telegram_link[0]
-    return twitter_link, telegram_link
+def get_social_urls(links):
+    def find_link(pattern: str, urls: List[str]):
+        filtered_links = [url for url in urls if pattern in url]
+        return None if len(filtered_links) == 0 else filtered_links[0]
+
+    twitter = find_link('twitter.com/', links)
+    telegram = find_link('t.me/', links)
+    discord = find_link('discord.com/', links)
+    linkedin = find_link('.linkedin.com/company', links)
+    facebook = find_link('.facebook.com/', links)
+    instagram = find_link('.instagram.com/', links)
+    youtube = find_link('.youtube.com/', links)
+    github = find_link('.github.com/', links)
+    return {
+        "twitter": twitter,
+        "telegram": telegram,
+        "discord": discord,
+        "linkedin": linkedin,
+        "facebook": facebook,
+        "instagram": instagram,
+        "youtube": youtube,
+        "github": github
+    }
 
 
 def crawl(url: str, logger):
@@ -174,7 +194,7 @@ def crawl(url: str, logger):
 
     # Extract main page links
     page_links, document_urls, soup = get_links(driver, url, logger)
-    twitter_link, telegram_link = get_important_urls(page_links)  # Eg.: twitter and telegram links
+    social_links = get_social_urls(page_links)
     document_url_list.extend(document_urls)
     level_1.extend([format_url(link) for link in page_links if (link not in visited) and tabu_check_url(link)])
     if soup is not None:
@@ -204,26 +224,31 @@ def crawl(url: str, logger):
     logger.info(f'Level 2: {len(level_2)} - {level_2}')
     url_set = set([url]).union(level_1).union(level_2)  # deduplication
     page_texts = []
-    for i in random.sample(url_set, len(url_set)):
+    control_text_list = []  # helper for deduplication
+    for i in random.sample(list(url_set), len(url_set)):
         if i in soups.keys():
             logger.info(f'{i} from stored bs4 soup!')
             text = soup_to_text(soup)
         else:
             text = get_page_text(driver, i, logger)
-        if len(text) > 0:
+        if (len(text) > 0) and (text not in control_text_list):
+            control_text_list.append(text)
             page_texts.append(f"The following text is from {i}:\n{text}")
         time.sleep(1)
-    page_texts = list(set(page_texts))  # deduplication
 
     # Parse pdf-s (e.g. whitepapers)
     document_url_list = set(document_url_list)  # deduplication
-    document_texts_raw = [(i, get_pdf_text(i, logger)) for i in document_url_list]
-    document_texts = [f"The following text is from {i}:\n{text}" for i, text in document_texts_raw if len(text) > 0]
-    document_texts = list(set(document_texts))  # deduplication
+    document_texts = []
+    control_text_list = []  # helper for deduplication
+    for u in document_url_list:
+        text = get_pdf_text(u, logger)
+        if (len(text) > 0) and (text not in control_text_list):
+            control_text_list.append(text)
+            document_texts.append(f"The following text is from {u}:\n{text}")
 
     # Clean up headless browser
     driver.quit()
 
     logger.info(f'Page count: {len(page_texts)}; Doc count: {len(document_texts)}')
 
-    return page_texts + document_texts, twitter_link, telegram_link
+    return page_texts + document_texts, social_links
