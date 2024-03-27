@@ -32,7 +32,7 @@ isError = False
 num_jobs = 0
 
 # If true, ai analysis will be returned on the request. If false, just the scraped info of website (and moonboy prompt)
-ai_analysis = False
+ai_analysis = True
 is_meme_season = True  # TODO set manually until calculation is automated
 
 
