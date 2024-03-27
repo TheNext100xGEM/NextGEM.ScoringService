@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 import threading
 from crawler_debug import crawl
 from vectorize import vectorize
-from chunk_selection import get_project_context
 from extraction import *
 from llm_connection import get_openai_completion
 from scoring import strict_prompt, moonboy_prompt, call_gpt_agent, call_gemini_agent, call_mistral_agent
@@ -146,13 +145,12 @@ def processing_task(url: str, taskid: str):
     result = {
         "iteration": 0,
         "analyzed": False,
-        "twitterLink": twitter_link,
-        "telegramLink": telegram_link,
+        "twitterLink": social_links['twitter'],
+        "telegramLink": social_links['telegram'],
         "isMemecoin": is_memecoin,
         "tokenName": token_info['tokenName'],
         "tokenSymbol": token_info['tokenSymbol'],
-        "chains": token_info['chains'],
-        "submittedDescription": lunchpad_info
+        "chains": token_info['chains']
     }
 
     if uses_meme:
