@@ -10,7 +10,8 @@ API keys should be provided in ```config.json``` file! Format:
     "GEMINI_API_KEY": "key",
     "MISTRAL_API_KEY": "key",
     "mongo_uri": "uri",
-    "INFURA_KEY": "key"
+    "INFURA_KEY": "key",
+    "COINMARKETCAP_KEY": "key"
 }
 ```
 
