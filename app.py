@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import threading
-from crawler import crawl
+from crawler_debug import crawl
 from vectorize import vectorize
 from chunk_selection import get_project_context
 from extraction import *

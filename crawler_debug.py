@@ -7,7 +7,7 @@ from selenium_stealth import stealth
 from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
 import random
-from typing import List
+from socials import get_social_urls
 
 # Scrapping API uri (to parallelize calls)
 with open('config.json', 'r') as file:
@@ -137,31 +137,6 @@ def get_pdf_text(url: str, logger):
         logger.info(f'{url} Document parsing error: {response} - {e}')
         return ""
     return text
-
-
-def get_social_urls(links):
-    def find_link(pattern: str, urls: List[str]):
-        filtered_links = [url for url in urls if pattern in url]
-        return None if len(filtered_links) == 0 else filtered_links[0]
-
-    twitter = find_link('twitter.com/', links)
-    telegram = find_link('t.me/', links)
-    discord = find_link('discord.com/', links)
-    linkedin = find_link('.linkedin.com/company', links)
-    facebook = find_link('.facebook.com/', links)
-    instagram = find_link('.instagram.com/', links)
-    youtube = find_link('.youtube.com/', links)
-    github = find_link('.github.com/', links)
-    return {
-        "twitter": twitter,
-        "telegram": telegram,
-        "discord": discord,
-        "linkedin": linkedin,
-        "facebook": facebook,
-        "instagram": instagram,
-        "youtube": youtube,
-        "github": github
-    }
 
 
 def crawl(url: str, logger):
