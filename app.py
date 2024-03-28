@@ -36,25 +36,25 @@ ai_analysis = True
 is_meme_season = True  # TODO set manually until calculation is automated
 
 
-def process_with_prompt_type(uses_meme: bool, text_chunks, embeddings, taskid: str):
+def process_with_prompt_type(url: str, uses_meme: bool, text_chunks, embeddings, taskid: str):
     save_prefix = 'meme_' if uses_meme else ''
     prompt = moonboy_prompt if uses_meme else strict_prompt
     prompt_type = 'meme' if uses_meme else 'strict'
 
     app.logger.info(f'[{taskid}] Generating analysis for project with prompt type: {prompt_type} ')
-    project_context = get_project_context(text_chunks, embeddings, prompt=prompt, top_k=40)
+    project_context = get_project_context(text_chunks, embeddings, prompt=f'Project: {url}\n{prompt}', top_k=40)
     app.logger.info(f'[{taskid}] Scoring relevant text chunks selected. Char count: {len(project_context)}')
     app.logger.info(f'[{taskid}] Calling OpenAI agent.')
-    res1 = call_gpt_agent(project_context, not uses_meme, app.logger)
+    res1 = call_gpt_agent(url, project_context, not uses_meme, app.logger)
     app.logger.info(f'[{taskid}] OpenAI score: {res1["score"]}')
     app.logger.info(f'[{taskid}] OpenAI description:\n{res1["description"]}')
     app.logger.info(f'[{taskid}] Calling Mistral agent.')
-    res2 = call_mistral_agent(project_context, not uses_meme, app.logger)
+    res2 = call_mistral_agent(url, project_context, not uses_meme, app.logger)
     app.logger.info(f'[{taskid}] Mistral score: {res2["score"]}')
     app.logger.info(f'[{taskid}] Mistral description:\n{res2["description"]}')
     app.logger.info(f'[{taskid}] Calling Gemini agent.')
     if not uses_meme:
-        res3 = call_gemini_agent(project_context, not uses_meme, app.logger)
+        res3 = call_gemini_agent(url, project_context, not uses_meme, app.logger)
         app.logger.info(f'[{taskid}] Gemini score: {res3["score"]}')
         app.logger.info(f'[{taskid}] Gemini description:\n{res3["description"]}')
 
@@ -128,6 +128,7 @@ def processing_task(url: str, taskid: str):
 
     if uses_meme:
         meme_results = process_with_prompt_type(
+            url=url,
             uses_meme=True,
             text_chunks=text_chunks,
             embeddings=embeddings,
@@ -136,6 +137,7 @@ def processing_task(url: str, taskid: str):
 
     if ai_analysis:
         strict_results = process_with_prompt_type(
+            url=url,
             uses_meme=False,
             text_chunks=text_chunks,
             embeddings=embeddings,

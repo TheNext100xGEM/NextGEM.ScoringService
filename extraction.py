@@ -166,7 +166,7 @@ def extract_industry_info(url: str, text_chunks, embeddings, logger, max_retries
 team_prompt = 'You are a helpful assistant. Brief and precise. You are extracting information from scrapped crypto project websites.\n' \
               'Extract the ###URL### project team members!\n' \
                  '- members (persons)\n' \
-                 '- member positions (CEO, CTO, etc.)\n' \
+                 '- member positions (Founder, CEO, CTO, Developer, Chief Clown, etc.)\n' \
                  '- member Twitter handle\n' \
                  '- member LinkedIn handle\n' \
                  'If there is no information in the text for a JSON field then answer: No information found!\n' \
@@ -216,7 +216,7 @@ def extract_backers_info(url: str, text_chunks, embeddings, logger, max_retries=
             time.sleep(1)
         else:
             data = set_none(json.loads(response))
-            if data['partnerships'] is not None:
+            if (data['partnerships'] is not None) and (data['investors'] is not None):
                 data['partnerships'] = [i for i in data['partnerships'] if i not in data['investors']]
                 data['partnerships'] = data['partnerships'] if len(data['partnerships']) > 0 else None
             return data
@@ -228,7 +228,7 @@ tokenomics_prompt = 'You are a helpful assistant. Brief and precise. You are ext
                     'Extract the ###URL### project\n' \
                     '- token utility and purpose\n' \
                     '- token economy (designed mechanisms which drive supply and demand)\n' \
-                    '- tokenomics (token distribution, vesting and other factors)\n' \
+                    '- tokenomics (detailed token distribution, vesting and other factors)\n' \
                     '- valuation (information about token price if capital is raised by the project)\n' \
                     'If there is no information in the text for a JSON field then answer: No information found!\n' \
                     'Answer format is parseable JSON!\n' \

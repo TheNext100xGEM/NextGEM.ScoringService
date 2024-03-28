@@ -4,7 +4,7 @@ from llm_connection import get_openai_completion, get_mistral_completion, get_ge
 
 strict_prompt = 'Custom AI Assistant for Crypto-Project Analysis: "The Next 100x Gem"\n\n' \
                 'Objective:\n' \
-                'You are tasked with analyzing and scoring early-stage crypto-projects (like IDO/ICO).\n' \
+                'You are tasked with analyzing and scoring early-stage crypto project: ###URL###\n' \
                 'Your scores will guide investors in identifying high-potential projects for investment.\n' \
                 'The investors are looking for the next gem rare coin that has a huge possibility of growth.\n\n' \
                 'Scoring Methodology:\n' \
@@ -108,15 +108,16 @@ def format_text(data: dict):
     }
 
 
-def call_gpt_agent(doc_chunks, is_strict: bool, logger, max_retries=3):
+def call_gpt_agent(url: str, doc_chunks, is_strict: bool, logger, max_retries=3):
     if len(doc_chunks) < 100:
         doc_chunks = 'Nothing was scrapped. Score accordingly!'
 
     base_prompt = strict_prompt if is_strict else moonboy_prompt
+    augmented_base_prompt = base_prompt.replace('###URL###', url)
 
     retries = 0
     while retries < max_retries:
-        response = get_openai_completion(base_prompt + doc_chunks, logger)
+        response = get_openai_completion(augmented_base_prompt + doc_chunks, logger)
         if response is None:
             time.sleep(1)
         else:
@@ -129,15 +130,16 @@ def call_gpt_agent(doc_chunks, is_strict: bool, logger, max_retries=3):
     return {'score': 0, 'description': 'Scoring failed'}
 
 
-def call_mistral_agent(doc_chunks, is_strict: bool, logger, max_retries=3):
+def call_mistral_agent(url: str, doc_chunks, is_strict: bool, logger, max_retries=3):
     if len(doc_chunks) < 100:
         doc_chunks = 'Nothing was scrapped. Score accordingly!'
 
     base_prompt = strict_prompt if is_strict else moonboy_prompt
+    augmented_base_prompt = base_prompt.replace('###URL###', url)
 
     retries = 0
     while retries < max_retries:
-        response = get_mistral_completion(base_prompt + doc_chunks, logger)
+        response = get_mistral_completion(augmented_base_prompt + doc_chunks, logger)
         if response is None:
             time.sleep(1)
         else:
@@ -150,15 +152,16 @@ def call_mistral_agent(doc_chunks, is_strict: bool, logger, max_retries=3):
     return {'score': 0, 'description': 'Scoring failed'}
 
 
-def call_gemini_agent(doc_chunks, is_strict: bool, logger, max_retries=1):
+def call_gemini_agent(url: str, doc_chunks, is_strict: bool, logger, max_retries=1):
     if len(doc_chunks) < 100:
         doc_chunks = 'Nothing was scrapped. Score accordingly!'
 
     base_prompt = strict_prompt if is_strict else moonboy_prompt
+    augmented_base_prompt = base_prompt.replace('###URL###', url)
 
     retries = 0
     while retries < max_retries:
-        response = get_gemini_completion(base_prompt + doc_chunks, logger)
+        response = get_gemini_completion(augmented_base_prompt + doc_chunks, logger)
         if response is None:
             time.sleep(1)
         else:
