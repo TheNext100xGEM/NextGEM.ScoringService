@@ -34,7 +34,7 @@ def tabu_check_url(url: str):
 def scrape_soups(urls: List[str], logger):
     """ Get bs4 soups fom a list of pages """
     try:
-        response = requests.post(f'{scrapping_api}/scrape_soup', headers=scrape_header, json={'urls': urls})
+        response = requests.post(f'{scrapping_api}scrape_soup', headers=scrape_header, json={'urls': urls})
         return [BeautifulSoup(t, "html.parser") for t in response.json()['texts']]
     except Exception as e:
         logger.error(f'Scrape API error! {e}')
@@ -88,10 +88,10 @@ def get_links(url: str, logger):
     return links, documents, soup
 
 
-def scrape_urls(urls: List[str], logger):
+def scrape_text(urls: List[str], logger):
     """ Get all text fom a list of pages and pdf docs """
     try:
-        response = requests.post(f'{scrapping_api}/scrape', headers=scrape_header, json={'urls': urls})
+        response = requests.post(f'{scrapping_api}scrape', headers=scrape_header, json={'urls': urls})
         return response.json()['texts']
     except Exception as e:
         logger.error(f'Scrape API error! {e}')
@@ -148,7 +148,7 @@ def crawl(url: str, logger):
     logger.info(f'URLs to send scrape API: {len(urls_to_scrape)}')
 
     # Start scrape job. Save results in dictionary.
-    scraped_texts = scrape_urls(urls=urls_to_scrape, logger=logger)
+    scraped_texts = scrape_text(urls=urls_to_scrape, logger=logger)
     scraped_texts_dict = dict(zip(urls_to_scrape, scraped_texts))
 
     # Create dictionary for urls and the parsed text of the url
