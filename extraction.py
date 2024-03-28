@@ -187,7 +187,8 @@ def extract_team_info(url: str, text_chunks, embeddings, logger, max_retries=3):
             time.sleep(1)
         else:
             data = set_none(json.loads(response))
-            data["members"] = [set_none(member) for member in data["members"]]
+            if data["members"] is not None:
+                data["members"] = [set_none(member) for member in data["members"]]
             return data
     return err_msg
 
